@@ -1,11 +1,26 @@
+import org.jetbrains.kotlin.ir.backend.js.compile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("multiplatform") version "1.4.10"
+    kotlin("plugin.serialization") version "1.4.10"
+
 }
-group = "me.balazs"
-version = "1.0-SNAPSHOT"
+group = "hu.sztaki.dsd"
+version = "0.1.0"
+
+println("project: $project")
+
+// Reference gradle.properties
+val ktor_version: String by project
+val serialization_version: String by project
+
 
 repositories {
     mavenCentral()
+    jcenter()
+    maven("https://kotlin.bintray.com/ktor")
+    maven("https://kotlin.bintray.com/kotlinx")
 }
 kotlin {
     jvm {
@@ -34,14 +49,25 @@ kotlin {
 
     
     sourceSets {
-        val commonMain by getting
+        val commonMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-core:$ktor_version")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
+            }
+        }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
+                implementation("io.ktor:ktor-client-mock:$ktor_version")
+
             }
         }
-        val jvmMain by getting
+        val jvmMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-cio:$ktor_version")
+            }
+        }
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))
@@ -53,7 +79,79 @@ kotlin {
                 implementation(kotlin("test-js"))
             }
         }
-        val nativeMain by getting
+        val nativeMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-curl:$ktor_version")
+            }
+        }
         val nativeTest by getting
     }
+
+
+//    dependencies {
+//        testImplementation("io.ktor:ktor-client-mock:$ktor_version")
+//    }
+
+
+    dependencies {
+        //compile("io.ktor:1.4.0")
+//        implementation("io.ktor:ktor-server-netty:$ktor_version")
+//        implementation("ch.qos.logback:logback-classic:$logback_version")
+//        commonMainImplementation("io.ktor:ktor-client-core:$ktor_version")
+//        commonMainImplementation("io.ktor:ktor-client-core-jvm:$ktor_version")
+//        commonMainImplementation("io.ktor:ktor-client-cio:$ktor_version")
+//        commonMainImplementation("io.ktor:ktor-client-http-timeout:$ktor_version")
+//        implementation("io.ktor:ktor-client-auth-jvm:$ktor_version")
+//        implementation("io.ktor:ktor-client-json-jvm:$ktor_version")
+//        implementation("io.ktor:ktor-client-gson:$ktor_version")
+//        implementation("io.ktor:ktor-client-logging-jvm:$ktor_version")
+//        testImplementation("io.ktor:ktor-server-tests:$ktor_version")
+//        testImplementation("io.ktor:ktor-client-mock:$ktor_version")
+//        testImplementation("io.ktor:ktor-client-mock-jvm:$ktor_version")
+//        commonTestImplementation("io.ktor:ktor-client-mock:$ktor_version")
+    }
 }
+
+
+// https://medium.com/mindorks/migrating-gradle-build-scripts-to-kotlin-dsl-89788a4e383a
+//group 'Example'
+//version '1.0-SNAPSHOT'
+//
+//buildscript {
+//    ext.kotlin_version = '1.4.0'
+//    ext.ktor_version = '1.4.0'
+//
+//    repositories {
+//        mavenCentral()
+//    }
+//    dependencies {
+//        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+//    }
+//}
+//
+//apply plugin: 'java'
+//apply plugin: 'kotlin'
+//
+//sourceCompatibility = 1.8
+//compileKotlin {
+//    kotlinOptions.jvmTarget = "1.8"
+//}
+//compileTestKotlin {
+//    kotlinOptions.jvmTarget = "1.8"
+//}
+//
+//kotlin {
+//    experimental {
+//        coroutines "enable"
+//    }
+//}
+//
+//repositories {
+//    jcenter()
+//}
+//
+//dependencies {
+//    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+//    compile "io.ktor:ktor-server-netty:$ktor_version"
+//    testCompile group: 'junit', name: 'junit', version: '4.12'
+//}

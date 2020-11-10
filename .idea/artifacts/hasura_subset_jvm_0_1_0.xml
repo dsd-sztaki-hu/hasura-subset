@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="hasura-subset-jvm-0.1.0">
+    <output-path>$PROJECT_DIR$/build/libs</output-path>
+    <root id="archive" name="hasura-subset-jvm-0.1.0.jar">
+      <element id="module-output" name="hasura-subset.jvmMain" />
+    </root>
+  </artifact>
+</component>
