@@ -41,7 +41,17 @@ kotlin {
     val hostOs = System.getProperty("os.name")
     val isMingwX64 = hostOs.startsWith("Windows")
     val nativeTarget = when {
-        hostOs == "Mac OS X" -> macosX64("native")
+        hostOs == "Mac OS X" -> {
+            macosX64("native") {
+                binaries.all {
+                    // https://kotlinlang.org/docs/reference/mpp-dsl-reference.html#native-targets
+                    // Make sure we use libs from brew (In my install macOS finds /opt/lib first (MacPorts libs), but
+                    // we want to use brew's curl)
+                    linkerOpts = mutableListOf("-L/usr/lib/", "-lcurl")
+                }
+            }
+
+        }
         hostOs == "Linux" -> linuxX64("native")
         isMingwX64 -> mingwX64("native")
         else -> throw GradleException("Host OS is not supported in Kotlin/Native.")

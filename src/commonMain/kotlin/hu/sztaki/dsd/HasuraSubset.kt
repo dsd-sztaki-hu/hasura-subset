@@ -1,6 +1,7 @@
 package hu.sztaki.dsd
 
 import io.ktor.client.*
+import kotlinx.serialization.json.Json
 
 /**
  * Hasura subsetting API.
@@ -14,9 +15,11 @@ class HasuraSubset {
         val toServerError: String? = null
     )
 
-    fun jsonToUpsert(json: String) : String
+    fun jsonToUpsert(jsonString: String) : String
     {
-        TODO()
+        val json = Json.parseToJsonElement(jsonString)
+        println("********** jsonToUpsert called, OK *************")
+        return "TODO"
     }
 
     fun copy(graphql: String, fromServer: HasuraServer, toServer: HasuraServer): Result
