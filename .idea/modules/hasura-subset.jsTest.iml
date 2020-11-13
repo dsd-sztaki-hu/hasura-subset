@@ -5,9 +5,9 @@
       <configuration version="3" platform="JavaScript " allPlatforms="JS []" useProjectSettings="false" isTestModule="true" externalProjectId="hasura-subset">
         <dependsOnModuleNames>hasura-subset:commonTest</dependsOnModuleNames>
         <sourceSets>
-          <sourceSet>hasura-subset.jsMain</sourceSet>
-          <sourceSet>hasura-subset.commonMain</sourceSet>
           <sourceSet>hasura-subset.commonTest</sourceSet>
+          <sourceSet>hasura-subset.commonMain</sourceSet>
+          <sourceSet>hasura-subset.jsMain</sourceSet>
         </sourceSets>
         <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
         <externalSystemTestTasks>

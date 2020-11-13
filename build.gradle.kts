@@ -21,6 +21,7 @@ repositories {
     jcenter()
     maven("https://kotlin.bintray.com/ktor")
     maven("https://kotlin.bintray.com/kotlinx")
+    maven("https://jitpack.io")
 }
 kotlin {
     jvm {
