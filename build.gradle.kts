@@ -1,13 +1,42 @@
 import org.jetbrains.kotlin.ir.backend.js.compile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.publish.maven.MavenPom
+import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper
+import com.jfrog.bintray.gradle.BintrayExtension
+import org.gradle.internal.os.OperatingSystem
 
 plugins {
     kotlin("multiplatform") version "1.4.10"
     kotlin("plugin.serialization") version "1.4.10"
-
+//    id("maven-publish")
+    `maven-publish`
+    id("com.jfrog.bintray") version "1.8.4"
 }
+
+val artifactName = project.name
+val artifactGroup = project.group.toString()
+val artifactVersion = project.version.toString()
+
+val pomUrl = "https://github.com/dsd-sztaki-hu/hasura-subset"
+val pomScmUrl = "https://github.com/dsd-sztaki-hu/hasura-subset"
+val pomIssueUrl = "https://github.com/dsd-sztaki-hu/hasura-subset/issues"
+val pomDesc = "https://github.com/dsd-sztaki-hu/hasura-subset"
+
+val githubRepo = "dsd-sztaki-hu/hasura-subset"
+val githubReadme = "README.md"
+
+val pomLicenseName = "MIT"
+val pomLicenseUrl = "https://opensource.org/licenses/mit-license.php"
+val pomLicenseDist = "repo"
+
+val pomDeveloperId = "beepsoft"
+val pomDeveloperName = "Balazs E. Pataki"
+
 group = "hu.sztaki.dsd"
 version = "0.1.0"
+
+
+
 
 println("project: $project")
 
@@ -98,71 +127,46 @@ kotlin {
         val nativeTest by getting
     }
 
-
-//    dependencies {
-//        testImplementation("io.ktor:ktor-client-mock:$ktor_version")
-//    }
-
-
     dependencies {
-        //compile("io.ktor:1.4.0")
-//        implementation("io.ktor:ktor-server-netty:$ktor_version")
-//        implementation("ch.qos.logback:logback-classic:$logback_version")
-//        commonMainImplementation("io.ktor:ktor-client-core:$ktor_version")
-//        commonMainImplementation("io.ktor:ktor-client-core-jvm:$ktor_version")
-//        commonMainImplementation("io.ktor:ktor-client-cio:$ktor_version")
-//        commonMainImplementation("io.ktor:ktor-client-http-timeout:$ktor_version")
-//        implementation("io.ktor:ktor-client-auth-jvm:$ktor_version")
-//        implementation("io.ktor:ktor-client-json-jvm:$ktor_version")
-//        implementation("io.ktor:ktor-client-gson:$ktor_version")
-//        implementation("io.ktor:ktor-client-logging-jvm:$ktor_version")
-//        testImplementation("io.ktor:ktor-server-tests:$ktor_version")
-//        testImplementation("io.ktor:ktor-client-mock:$ktor_version")
-//        testImplementation("io.ktor:ktor-client-mock-jvm:$ktor_version")
-//        commonTestImplementation("io.ktor:ktor-client-mock:$ktor_version")
     }
 }
 
+// Adapted from: https://github.com/lamba92/kotlin-multiplatform-coroutines-runtest/blob/master/build.gradle.kts
+bintray {
+    // Provide these as ENV vars
+    user = searchPropertyOrNull("bintrayUsername")
+    key = searchPropertyOrNull("bintrayApiKey")
+    pkg {
+        version {
+            name = project.version.toString()
+        }
+        userOrg = "dsd-sztaki-hu"
+        repo = "dsd-oss"
+        name = "hasura-subset"
+        setLicenses("MIT")
+        vcsUrl = "https://github.com/dsd-sztaki-hu/hasura-subset"
+        issueTrackerUrl = "https://github.com/dsd-sztaki-hu/hasura-subset/issues"
+    }
+    publish = true
+    setPublications("jvm", "js", "macos-x64", "kotlinMultiplatform")
+//    if (OperatingSystem.current().isMacOsX)
+//        setPublications("jvm", "js",/* "macos-x64", "ios-arm64", "ios-arm32", "linux-x64",*/ "kotlinMultiplatform")
+//    else (OperatingSystem.current().isWindows)
+//        setPublications("windows-x64")
+}
 
-// https://medium.com/mindorks/migrating-gradle-build-scripts-to-kotlin-dsl-89788a4e383a
-//group 'Example'
-//version '1.0-SNAPSHOT'
-//
-//buildscript {
-//    ext.kotlin_version = '1.4.0'
-//    ext.ktor_version = '1.4.0'
-//
-//    repositories {
-//        mavenCentral()
-//    }
-//    dependencies {
-//        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-//    }
-//}
-//
-//apply plugin: 'java'
-//apply plugin: 'kotlin'
-//
-//sourceCompatibility = 1.8
-//compileKotlin {
-//    kotlinOptions.jvmTarget = "1.8"
-//}
-//compileTestKotlin {
-//    kotlinOptions.jvmTarget = "1.8"
-//}
-//
-//kotlin {
-//    experimental {
-//        coroutines "enable"
-//    }
-//}
-//
-//repositories {
-//    jcenter()
-//}
-//
-//dependencies {
-//    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-//    compile "io.ktor:ktor-server-netty:$ktor_version"
-//    testCompile group: 'junit', name: 'junit', version: '4.12'
-//}
+extensions.findByName("buildScan")?.withGroovyBuilder {
+    setProperty("termsOfServiceUrl", "https://gradle.com/terms-of-service")
+    setProperty("termsOfServiceAgree", "yes")
+}
+
+fun searchPropertyOrNull(propertyName: String): String? =
+    project.findProperty(propertyName) as String? ?: System.getenv(propertyName)
+
+fun BintrayExtension.pkg(action: BintrayExtension.PackageConfig.() -> Unit) {
+    pkg(closureOf(action))
+}
+
+fun BintrayExtension.PackageConfig.version(action: BintrayExtension.VersionConfig.() -> Unit) {
+    version(closureOf(action))
+}
