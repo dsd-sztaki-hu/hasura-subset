@@ -6,8 +6,8 @@ import com.jfrog.bintray.gradle.BintrayExtension
 import org.gradle.internal.os.OperatingSystem
 
 plugins {
-    kotlin("multiplatform") version "1.4.10"
-    kotlin("plugin.serialization") version "1.4.10"
+    kotlin("multiplatform") version "1.4.30"
+    kotlin("plugin.serialization") version "1.4.30"
 //    id("maven-publish")
     `maven-publish`
     id("com.jfrog.bintray") version "1.8.4"
@@ -48,8 +48,8 @@ val serialization_version: String by project
 repositories {
     mavenCentral()
     jcenter()
-    maven("https://kotlin.bintray.com/ktor")
-    maven("https://kotlin.bintray.com/kotlinx")
+//    maven("https://kotlin.bintray.com/ktor")
+//    maven("https://kotlin.bintray.com/kotlinx")
     maven("https://jitpack.io")
 }
 kotlin {
@@ -58,7 +58,7 @@ kotlin {
             kotlinOptions.jvmTarget = "1.8"
         }
     }
-    js {
+    js(IR) {
         browser {
             testTask {
                 useKarma {
@@ -113,7 +113,13 @@ kotlin {
                 implementation(kotlin("test-junit"))
             }
         }
-        val jsMain by getting
+        val jsMain by getting {
+            dependencies {
+                // Dukat unable to generate proper typings as of now so we ignore it
+                implementation(npm("graphql", "15.5.0", generateExternals = false))
+                implementation(npm("graphql-2-json-schema", "0.5.1", generateExternals = true))
+            }
+        }
         val jsTest by getting {
             dependencies {
                 implementation(kotlin("test-js"))

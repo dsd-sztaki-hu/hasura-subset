@@ -5,8 +5,8 @@
       <configuration version="3" platform="Native (macos_x64) " allPlatforms="Native []/Native [macos_x64]" useProjectSettings="false" isTestModule="true" externalProjectId="hasura-subset">
         <dependsOnModuleNames>hasura-subset:commonTest</dependsOnModuleNames>
         <sourceSets>
-          <sourceSet>hasura-subset.nativeMain</sourceSet>
           <sourceSet>hasura-subset.commonTest</sourceSet>
+          <sourceSet>hasura-subset.nativeMain</sourceSet>
           <sourceSet>hasura-subset.commonMain</sourceSet>
         </sourceSets>
         <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
