@@ -43,7 +43,7 @@ println("project: $project")
 // Reference gradle.properties
 val ktor_version: String by project
 val serialization_version: String by project
-
+val graphql_java_version: String by project
 
 repositories {
     mavenCentral()
@@ -106,6 +106,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation("io.ktor:ktor-client-cio:$ktor_version")
+                implementation("com.graphql-java:graphql-java:$graphql_java_version")
             }
         }
         val jvmTest by getting {

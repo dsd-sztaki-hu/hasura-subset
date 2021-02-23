@@ -8,7 +8,7 @@ import hu.sztaki.dsd.graphql2JsonSchema.fromIntrospectionQuery
 // JSON.stringify(value[, replacer[, space]])
 external class JSON {
     companion object {
-        fun stringify(json: dynamic, replacer: dynamic, space: Int): String
+        fun stringify(json: dynamic, replacer: dynamic = definedExternally, space: Int = definedExternally): String
     }
 }
 
@@ -16,7 +16,13 @@ external class JSON {
 actual fun graphqlSchemaToJsonSchema(schema: String): String {
     val jsonSchema = fromIntrospectionQuery(graphqlSync(buildSchema(schema), getIntrospectionQuery()).data)
     //js("""JSON.stringify(jsonSchema, null, 2)""")
-    val jsonSchemaString = JSON.stringify(jsonSchema, null, 2)
-    println("\n\njsonSchema"+jsonSchemaString+"\n\n")
-    return jsonSchemaString
+    return JSON.stringify(jsonSchema)
+}
+
+actual fun graphqlSchemaToIntrospectedSchema(schema: String): String
+{
+    val intro = graphqlSync(buildSchema(schema), getIntrospectionQuery()).data["__schema"]
+    // Note: with JSON.stringify(intro, null, 2) printlning the json fails in tests, this must be a bug in Kotlin
+    val json = JSON.stringify(intro)
+    return json
 }
