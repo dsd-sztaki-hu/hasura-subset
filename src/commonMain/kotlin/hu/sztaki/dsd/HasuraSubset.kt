@@ -35,6 +35,22 @@ class HasuraSubset {
     )
 
     /**
+     * Process graphql query by extending hasura-subset macros.
+     *
+     * - ...everything: expands all simple fields of object
+     */
+    fun processGraphql(
+        graphqlQuery: String,
+        graphqlSchema: String
+    ) : String
+    {
+        //val result = GraphQLParser.parseWithResult(graphqlQuery)
+
+        var graphqlIntro = graphqlSchemaToIntrospectedSchema(graphqlSchema)
+        return graphqlIntro
+    }
+
+    /**
      * @param jsonString the JSON to turn into a Hasura upsert
      * @param onConflict optional function to generate OnConflict values for a given type.
      */
@@ -47,14 +63,6 @@ class HasuraSubset {
     ) : UpsertResult
     {
         val json = Json.parseToJsonElement(jsonString)
-
-//        var jsonSchema = graphqlSchemaToJsonSchema(graphqlSchemaExample)
-//        println("""\n\njsonSchema: ${jsonSchema}\n\n""")
-
-        var graphqlIntro = graphqlSchemaToIntrospectedSchema(graphqlSchemaExample)
-        println("""\n\ngraphqlIntro: ${graphqlIntro}\n\n""")
-
-//        val result = GraphQLParser.parseWithResult(graphqlQuery)
 
         val root = if (json is JsonObject) json else throw HasuraSubsetException("json in not an object")
         val data = json["data"] as JsonObject? ?: throw HasuraSubsetException("key 'data' is not found in root")
@@ -181,7 +189,7 @@ class HasuraSubset {
 class HasuraSubsetException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 
-val graphqlSchemaExample = """
+private val graphqlSchemaExample = """
             "A ToDo Object"
             type Todo {
                 "A unique identifier"

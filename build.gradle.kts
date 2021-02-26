@@ -56,6 +56,7 @@ kotlin {
     jvm {
         compilations.all {
             kotlinOptions.jvmTarget = "1.8"
+            kotlinOptions.useIR = true
         }
     }
     js(IR) {
@@ -93,6 +94,7 @@ kotlin {
             dependencies {
                 implementation("io.ktor:ktor-client-core:$ktor_version")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
+//                implementation("com.kgbier.graphql:graphql-parser:1.0.0")
             }
         }
         val commonTest by getting {
@@ -108,6 +110,7 @@ kotlin {
                 implementation("io.ktor:ktor-client-cio:$ktor_version")
                 implementation("com.graphql-java:graphql-java:$graphql_java_version")
             }
+
         }
         val jvmTest by getting {
             dependencies {
