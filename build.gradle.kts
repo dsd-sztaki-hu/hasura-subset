@@ -68,6 +68,7 @@ kotlin {
                 }
             }
         }
+        nodejs ()
     }
     val hostOs = System.getProperty("os.name")
     val isMingwX64 = hostOs.startsWith("Windows")
@@ -94,7 +95,10 @@ kotlin {
             dependencies {
                 implementation("io.ktor:ktor-client-core:$ktor_version")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
+//                implementation("asd:qwe:1.0.0")
 //                implementation("com.kgbier.graphql:graphql-parser:1.0.0")
+//                implementation("com.kgbier.graphql:graphql-parser-jvm:1.0.0")
+//                implementation("com.kgbier.graphql:graphql-parser-js:1.0.0")
             }
         }
         val commonTest by getting {
@@ -109,6 +113,9 @@ kotlin {
             dependencies {
                 implementation("io.ktor:ktor-client-cio:$ktor_version")
                 implementation("com.graphql-java:graphql-java:$graphql_java_version")
+                implementation("com.fasterxml.jackson.core:jackson-core:2.12.1")
+                implementation("com.fasterxml.jackson.core:jackson-databind:2.12.1")
+                implementation(kotlin("reflect"))
             }
 
         }
