@@ -1,44 +1,44 @@
 package com.kgbier.graphql.parser.structure
 
 data class Document(
-        val definitions: List<Definition>
+        var definitions: List<Definition>
 )
 
-data class DefinitionExecutable(val definition: ExecutableDefinition) : Definition()
+data class DefinitionExecutable(var definition: ExecutableDefinition) : Definition()
 sealed class Definition
 
 sealed class ExecutableDefinition
-data class ExecutableDefinitionOperation(val definition: OperationDefinition) : ExecutableDefinition()
-data class ExecutableDefinitionFragment(val definition: FragmentDefinition) : ExecutableDefinition()
+data class ExecutableDefinitionOperation(var definition: OperationDefinition) : ExecutableDefinition()
+data class ExecutableDefinitionFragment(var definition: FragmentDefinition) : ExecutableDefinition()
 
-data class OperationDefinitionOperation(val definition: Operation) : OperationDefinition()
-data class OperationDefinitionSelectionSet(val selectionSet: List<Selection>) : OperationDefinition()
+data class OperationDefinitionOperation(var definition: Operation) : OperationDefinition()
+data class OperationDefinitionSelectionSet(var selectionSet: List<Selection>) : OperationDefinition()
 sealed class OperationDefinition {
     data class Operation(
-            val operationType: OperationType,
-            val name: String?,
-            val variableDefinitions: List<VariableDefinition>,
-            val directives: List<Directive>,
-            val selectionSet: List<Selection>
+            var operationType: OperationType,
+            var name: String?,
+            var variableDefinitions: List<VariableDefinition>,
+            var directives: List<Directive>,
+            var selectionSet: List<Selection>
     )
 }
 
 data class FragmentDefinition(
-        val name: String,
-        val typeCondition: TypeCondition,
-        val directives: List<Directive>,
-        val selectionSet: List<Selection>
+        var name: String,
+        var typeCondition: TypeCondition,
+        var directives: List<Directive>,
+        var selectionSet: List<Selection>
 )
 
 data class InlineFragment(
-        val typeCondition: TypeCondition?,
-        val directives: List<Directive>,
-        val selectionSet: List<Selection>
+        var typeCondition: TypeCondition?,
+        var directives: List<Directive>,
+        var selectionSet: List<Selection>
 )
 
 data class FragmentSpread(
-        val name: String,
-        val directives: List<Directive>
+        var name: String,
+        var directives: List<Directive>
 )
 
 enum class OperationType {
@@ -47,47 +47,47 @@ enum class OperationType {
     SUBSCRIPTION
 }
 
-data class TypeCondition(val namedType: String)
+data class TypeCondition(var namedType: String)
 
 data class Field(
-        val alias: String?,
-        val name: String,
-        val arguments: List<Argument>,
-        val directives: List<Directive>,
-        val selectionSet: List<Selection>
+        var alias: String?,
+        var name: String,
+        var arguments: List<Argument>,
+        var directives: List<Directive>,
+        var selectionSet: List<Selection>
 )
 
-data class SelectionField(val selection: Field) : Selection()
-data class SelectionFragmentSpread(val selection: FragmentSpread) : Selection()
-data class SelectionInlineFragment(val selection: InlineFragment) : Selection()
+data class SelectionField(var selection: Field) : Selection()
+data class SelectionFragmentSpread(var selection: FragmentSpread) : Selection()
+data class SelectionInlineFragment(var selection: InlineFragment) : Selection()
 sealed class Selection
 
 data class Directive(
-        val name: String,
-        val arguments: List<Argument>
+        var name: String,
+        var arguments: List<Argument>
 )
 
 data class Argument(
-        val name: String,
-        val value: Value
+        var name: String,
+        var value: Value
 )
 
 data class VariableDefinition(
-        val variable: String,
-        val type: String,
-        val defaultValue: Value?
+        var variable: String,
+        var type: String,
+        var defaultValue: Value?
 )
 
 sealed class Value {
-    data class ValueVariable(val name: String) : Value()
-    data class ValueInt(val value: String) : Value()
-    data class ValueFloat(val value: String) : Value()
-    data class ValueString(val value: String) : Value()
-    data class ValueBoolean(val value: Boolean) : Value()
+    data class ValueVariable(var name: String) : Value()
+    data class ValueInt(var value: String) : Value()
+    data class ValueFloat(var value: String) : Value()
+    data class ValueString(var value: String) : Value()
+    data class ValueBoolean(var value: Boolean) : Value()
     object ValueNull : Value()
-    data class ValueEnum(val value: String) : Value()
-    data class ValueList(val value: List<Value>) : Value()
-    data class ValueObject(val value: List<ObjectField>) : Value()
+    data class ValueEnum(var value: String) : Value()
+    data class ValueList(var value: List<Value>) : Value()
+    data class ValueObject(var value: List<ObjectField>) : Value()
 }
 
-data class ObjectField(val name: String, val value: Value)
+data class ObjectField(var name: String, var value: Value)

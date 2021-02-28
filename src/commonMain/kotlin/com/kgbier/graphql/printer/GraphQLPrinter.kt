@@ -6,7 +6,7 @@ import com.kgbier.graphql.parser.structure.*
  * Generates GraphQL query from AST.
  *
  * Based on: https://github.com/graphql-java/graphql-java/issues/126
- * Author: Balazs. E. Patakis
+ * Author: Balazs. E. Pataki
  */
 class GraphQLPrinter(
     val indentWidth: Int = 2
