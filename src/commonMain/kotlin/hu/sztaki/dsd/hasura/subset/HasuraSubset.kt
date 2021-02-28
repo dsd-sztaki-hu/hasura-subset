@@ -2,6 +2,7 @@ package hu.sztaki.dsd.hasura.subset
 
 import com.kgbier.graphql.parser.GraphQLParser
 import com.kgbier.graphql.printer.GraphQLPrinter
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 
@@ -59,6 +60,9 @@ class HasuraSubset {
         }
 
         var graphqlIntro = graphqlSchemaToIntrospectedSchema(graphqlSchema)
+        val obj = Json.decodeFromString<JsonObject>(graphqlIntro)
+        println("obj "+obj)
+
         return graphqlIntro
     }
 
@@ -200,6 +204,18 @@ class HasuraSubset {
 
 class HasuraSubsetException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
+//fun String.buildJsonObject(other: Map<String, Any?>) : JsonElement {
+//    val jsonEncoder = Json{ encodeDefaults = true } // Set this accordingly to your needs
+//    val map = emptyMap<String, JsonElement>().toMutableMap()
+//
+//    other.forEach {
+//        map[it.key] = if (it.value != null)
+//            jsonEncoder.encodeToJsonElement(serializer(it.value!!::class.starProjectedType), it.value)
+//        else JsonNull
+//    }
+//
+//    return JsonObject(map)
+//}
 
 private val graphqlSchemaExample = """
             "A ToDo Object"
