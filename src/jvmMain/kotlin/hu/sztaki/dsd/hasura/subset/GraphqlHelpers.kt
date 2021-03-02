@@ -16,13 +16,6 @@ import graphql.parser.Parser
 import graphql.schema.idl.SchemaPrinter
 import com.fasterxml.jackson.databind.SerializationFeature
 
-
-
-
-
-
-
-
 actual fun graphqlSchemaToJsonSchema(schema: String): String {
     println(""" parseGraphqlSchema in JVM called with '${schema}'""")
     return "TODO"
@@ -30,12 +23,17 @@ actual fun graphqlSchemaToJsonSchema(schema: String): String {
 
 actual fun graphqlSchemaToIntrospectedSchema(schema: String): String
 {
-    val schemaParser = SchemaParser()
-    val typeDefinitionRegistry = schemaParser.parse(schema)
+//    val typeDefinitionRegistry = SchemaParser().parse(schema)
+//    val graphQLSchema = SchemaGenerator().makeExecutableSchema(typeDefinitionRegistry, RuntimeWiring.MOCKED_WIRING)
+//
+//    val schemaParser = SchemaParser()
+//    val typeDefinitionRegistry = schemaParser.parse(schema)
+//
+//    val schemaGenerator = SchemaGenerator.
+//    schemaGenerator.
+//    val graphQLSchema = schemaGenerator.makeExecutableSchema(typeDefinitionRegistry, newRuntimeWiring().build())
 
-    val schemaGenerator = SchemaGenerator()
-    val graphQLSchema = schemaGenerator.makeExecutableSchema(typeDefinitionRegistry, newRuntimeWiring().build())
-
+    val graphQLSchema = SchemaGenerator.createdMockedSchema(schema)
     val build = GraphQL.newGraphQL(graphQLSchema).build()
     val executionResult = build.execute(INTROSPECTION_QUERY)
 

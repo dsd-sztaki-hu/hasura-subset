@@ -21,7 +21,7 @@ class GraphQLPrinter(
         fun accept(t: T)
     }
 
-    fun print(document: Document): String? {
+    fun print(document: Document): String {
         val printer = GraphQLPrinterImpl(document, indentWidth)
         return printer.print()
     }
@@ -90,30 +90,29 @@ class GraphQLPrinter(
 
         private fun print(node: Any) {
             when(node) {
-                is Document -> print(node as Document)
-                is DefinitionExecutable -> print(node as DefinitionExecutable)
-                is ExecutableDefinitionOperation -> print(node as ExecutableDefinitionOperation)
-                is ExecutableDefinitionFragment -> print(node as ExecutableDefinitionFragment)
-                is OperationDefinition.Operation -> print(node as OperationDefinition.Operation)
-                is OperationDefinitionOperation -> print((node as OperationDefinitionOperation).definition)
-                is OperationDefinitionSelectionSet -> print((node as OperationDefinitionSelectionSet).selectionSet)
-                is FragmentDefinition -> print(node as FragmentDefinition)
-                is VariableDefinition -> print(node as VariableDefinition)
-                is Value.ValueList -> print(node as Value.ValueList)
-                is Value.ValueBoolean -> print(node as Value.ValueBoolean)
-                is Value.ValueEnum -> print(node as Value.ValueEnum)
-                is Value.ValueFloat -> print(node as Value.ValueFloat)
-                is Value.ValueInt -> print(node as Value.ValueInt)
-                is Value.ValueObject -> print(node as Value.ValueObject)
-                is Value.ValueString -> print(node as Value.ValueString)
-                is Value.ValueVariable -> print(node as Value.ValueVariable)
-                is Value.ValueList -> print(node as Value.ValueList)
-                is Directive -> print(node as Directive)
-                is Argument -> print(node as Argument)
-                is ObjectField -> print(node as ObjectField)
-                is Field -> print(node as Field)
-                is InlineFragment -> print(node as InlineFragment)
-                is FragmentSpread -> print(node as FragmentSpread)
+                is Document -> print(node)
+                is DefinitionExecutable -> print(node)
+                is ExecutableDefinitionOperation -> print(node)
+                is ExecutableDefinitionFragment -> print(node)
+                is OperationDefinition.Operation -> print(node)
+                is OperationDefinitionOperation -> print(node.definition)
+                is OperationDefinitionSelectionSet -> print(node.selectionSet)
+                is FragmentDefinition -> print(node)
+                is VariableDefinition -> print(node)
+                is Value.ValueBoolean -> print(node)
+                is Value.ValueEnum -> print(node)
+                is Value.ValueFloat -> print(node)
+                is Value.ValueInt -> print(node)
+                is Value.ValueObject -> print(node)
+                is Value.ValueString -> print(node)
+                is Value.ValueVariable -> print(node)
+                is Value.ValueList -> print(node)
+                is Directive -> print(node)
+                is Argument -> print(node)
+                is ObjectField -> print(node)
+                is Field -> print(node)
+                is InlineFragment -> print(node)
+                is FragmentSpread -> print(node)
                 else -> throw RuntimeException("unknown type "+node)
             }
         }

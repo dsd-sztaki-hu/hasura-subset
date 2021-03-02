@@ -1,6 +1,7 @@
 package hu.sztaki.dsd.hasura.subset
 
 import com.kgbier.graphql.parser.GraphQLParser
+import com.kgbier.graphql.parser.structure.*
 import com.kgbier.graphql.printer.GraphQLPrinter
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -48,23 +49,114 @@ class HasuraSubset {
         graphqlSchema: String
     ) : String
     {
-        //val result = graphqlQueryToAst(graphqlQuery)
-        //println("******** result "+result)
-        val ast = GraphQLParser.parseWithResult(graphqlQuery)
-        println("ast "+ast)
+        val queryAST = GraphQLParser.parseWithResult(graphqlQuery)
 
-        ast.match?.let {
-            val printer = GraphQLPrinter()
-            val graphqlQuery2 = printer.print(it)
-            println(graphqlQuery2)
+        var graphqlIntroString = graphqlSchemaToIntrospectedSchema(graphqlSchema)
+        val schemaDocument = Json.decodeFromString<JsonObject>(graphqlIntroString)
+
+        if (queryAST.match == null) {
+            throw HasuraSubsetException("Error while parsing query at ${queryAST.rest.state.row}:${queryAST.rest.state.col}")
         }
 
-        var graphqlIntro = graphqlSchemaToIntrospectedSchema(graphqlSchema)
-        val obj = Json.decodeFromString<JsonObject>(graphqlIntro)
-        println("obj "+obj)
+        // We have a match, process it
+        queryAST.match.apply {
+            // Get the operation from the query
+            val op = queryOperations[0]
+            if (op.name == null) {
+                throw HasuraSubsetException("Query operation has no name")
+            }
 
-        return graphqlIntro
+            // Find top level selection and starting there recursively expand __everything in all subsequent
+            // selction lists
+            op.selectionSet.forEach {
+                when(it) {
+                    is SelectionField -> {
+                        val queryOp = it.selection.name
+
+                        // Find operation type in schema
+                        val opInIntro = schemaDocument.findQueryOperation(queryOp)
+                            ?: throw HasuraSubsetException("No query operation type ${op.name} found in graphql schema")
+
+                        val opTypeName = opInIntro.baseType.stringValue("name")
+                        val selection = op.selectionSet[0].selection ?: return@forEach
+                        expandEverythingSelection(selection, opTypeName, schemaDocument)
+                    }
+                    is SelectionFragmentSpread -> TODO()
+                    is SelectionInlineFragment -> TODO()
+                }
+            }
+            return GraphQLPrinter().print(this)
+        }
     }
+
+    /**
+     * Expand `__everything` in the selectionSet of `target` and all its subsequent selection sets recursively
+     * with the scalar fields of the type of the selection. This lets us use __everything to list all simple fields
+     * and so we don't have to always handpick fields. This is also comes handy when schema changes as we don't have
+     * to update when a simple field changes.
+     */
+    private fun expandEverythingSelection(target: WithSelectionSet, typeName: String, document: JsonObject)
+    {
+        val opTypeDefinition = document.getType(typeName)
+        if (opTypeDefinition == null) {
+            HasuraSubsetException("No type definition ${opTypeDefinition} found in graphql schema")
+        }
+
+        // Do we have an __everythig slection
+        var everythingSelection = target.selectionSet.filter {
+            when(it) {
+                is SelectionField -> {
+                    it.selection.name.toLowerCase() == "__everything"
+                }
+                is SelectionFragmentSpread -> TODO()
+                is SelectionInlineFragment -> TODO()
+            }
+        }
+
+        // Collect all scalars except those starting with __ (except __everythig). Ie. __typename is only
+        // inluded in final list if explicitly set, __everythig won't generate it on its own.
+        var scalarSelections = target.selectionSet.filter {
+            if (it.selection is Field) {
+                val sel = it.selection as Field
+                // Note: keep any startign with __ except '__everything'
+                sel.selectionSet != null && sel.selectionSet.isEmpty() &&
+                        (!sel.name.startsWith("__") || sel.name.toLowerCase().startsWith("__everything"))
+            }
+            else {
+                false
+            }
+        }
+
+        // Expand __everything
+        if (!everythingSelection.isEmpty()) {
+            val remaining = mutableListOf<Selection>()
+            remaining.addAll(target.selectionSet)
+
+            remaining.remove(everythingSelection)
+            if (!scalarSelections.isEmpty()) {
+                remaining.removeAll(scalarSelections)
+            }
+
+            val finalList = mutableListOf<Selection>()
+            opTypeDefinition!!.scalarFieldNames.map {name ->
+                finalList.add(SelectionField(Field(null, name, emptyList(), emptyList(), emptyList())))
+            }
+            finalList.addAll(remaining)
+            target.selectionSet = finalList
+        }
+
+        // Recurse into complex selections
+        target.selectionSet.forEach {
+            if (it.selection is Field ){
+                val field = it.selection as Field
+                if (!field.selectionSet.isEmpty()) {
+                    val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
+                    expandEverythingSelection(field, fieldTypeName!!, document)
+                }
+            }
+        }
+    }
+
 
     /**
      * @param jsonString the JSON to turn into a Hasura upsert
@@ -201,6 +293,15 @@ class HasuraSubset {
     }
 
 }
+
+val Selection.selection: WithSelectionSet?
+    get() {
+        return when(this) {
+            is SelectionField -> this.selection
+            is SelectionFragmentSpread -> null
+            is SelectionInlineFragment -> this.selection
+        }
+    }
 
 class HasuraSubsetException(message: String, cause: Throwable? = null) : Exception(message, cause)
 

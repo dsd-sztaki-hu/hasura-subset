@@ -24,6 +24,41 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/src/commonMain/kotlin/hu/sztaki/dsd/hasura/subset/GraphqlSchemaExtensions.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/src/commonMain/kotlin/hu/sztaki/dsd/hasura/subset/HasuraSubset.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/src/commonTest/kotlin/hu/sztaki/dsd/hasura/subset/AstExtenstionTest.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/src/commonTest/kotlin/hu/sztaki/dsd/hasura/subset/GraphqlSchemaExtensionsTest.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/src/commonTest/kotlin/hu/sztaki/dsd/hasura/subset/inputs.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/src/jsMain/kotlin/hu/sztaki/dsd/parseGraphqlSchema.kt">
           <value>
             <Attribute>

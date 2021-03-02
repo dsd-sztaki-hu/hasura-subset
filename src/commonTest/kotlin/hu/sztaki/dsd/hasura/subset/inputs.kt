@@ -710,3 +710,342 @@ pub2: insert_publication(objects: ${"$"}objects_pub2, on_conflict: ${"$"}on_conf
     )
 
 )
+
+
+val graphqlQueryExample = """
+            query exampleQuery(${"$"}param: [bigint!]!){
+              publication(mtid:${"$"}param) {
+                __typename
+                dtype
+                otype
+                mtid
+                title
+                deleted
+                published
+                unhandledTickets
+                authorCount
+                citation
+                citationCount
+                citationCountUnpublished
+                citationCountWoOther
+                citedCount
+                citedPubCount
+                citingPubCount
+                contributorCount
+                core
+                doiCitationCount
+                independentCitationCount
+                independentCitCountWoOther
+                independentCitingPubCount
+                oaFree
+                ownerAuthorCount
+                ownerInstituteCount
+                publicationPending
+                scopusCitationCount
+                unhandledCitationCount
+                unhandledCitingPubCount
+                wosCitationCount                
+                authorships {
+                  __typename
+                  dtype
+                  otype
+                  mtid  
+                  familyName
+                  givenName
+                  deleted
+                  published
+                  unhandledTickets
+                  listPosition
+                  oldListPosition
+                  share 
+                  author {
+                    __typename
+                    dtype
+                    otype
+                    mtid
+                    deleted
+                    published
+                    unhandledTickets 
+                    authorNames {
+                      __typename
+                      otype
+                      mtid           
+                      familyName
+                      givenName
+                      fullName
+                      deleted
+                      published
+                      unhandledTickets 
+                    }
+                  }
+                }
+              }
+            }
+            """.trimIndent()
+
+
+private val graphqlSchemaExample = """
+            "A ToDo Object"
+            type Todo {
+                "A unique identifier"
+                id: String!
+                name: String!
+                completed: Boolean
+                color: Color
+                "A required list containing colors that cannot contain nulls"
+                requiredColors: [Color!]!
+                "A non-required list containing colors that cannot contain nulls"
+                optionalColors: [Color!]
+                fieldWithOptionalArgument(
+                  optionalFilter: [String!]
+                ): [String!]
+                fieldWithRequiredArgument(
+                  requiredFilter: [String!]!
+                ): [String!]
+            }
+            ""${'"'}
+            A type that describes ToDoInputType. Its description might not
+            fit within the bounds of 80 width and so you want MULTILINE
+            ""${'"'}
+            input TodoInputType {
+                name: String!
+                completed: Boolean
+                color: Color=RED
+            }
+            enum Color {
+              "Red color"
+              RED
+              "Green color"
+              GREEN
+            }
+            type Query {
+                todo(
+                    "todo identifier"
+                    id: String!
+                    isCompleted: Boolean=false
+                    requiredStatuses: [String!]!
+                    optionalStatuses: [String!]
+                ): Todo!
+                todos: [Todo!]!
+            }
+            type Mutation {
+                update_todo(id: String!, todo: TodoInputType!): Todo
+                create_todo(todo: TodoInputType!): Todo
+            }
+        """.trimIndent()
+
+val graphqlQueryExample1 = """
+    query exampleQuery(${"$"}param: [bigint]!){
+      publication(mtid:${"$"}param) {
+        __typename
+        id
+      }
+    }
+""".trimIndent()
+
+val graphqlQueryExample2 = """
+            query exampleQuery(${"$"}param: [bigint!]!){
+              publication(mtid:${"$"}param) {
+                __typename
+                dtype
+                otype
+                mtid
+                title
+                deleted
+                published
+                unhandledTickets
+                authorCount
+                citation
+                citationCount
+                citationCountUnpublished
+                citationCountWoOther
+                citedCount
+                citedPubCount
+                citingPubCount
+                contributorCount
+                core
+                doiCitationCount
+                independentCitationCount
+                independentCitCountWoOther
+                independentCitingPubCount
+                oaFree
+                ownerAuthorCount
+                ownerInstituteCount
+                publicationPending
+                scopusCitationCount
+                unhandledCitationCount
+                unhandledCitingPubCount
+                wosCitationCount                
+                authorships {
+                  __typename
+                  dtype
+                  otype
+                  mtid  
+                  familyName
+                  givenName
+                  deleted
+                  published
+                  unhandledTickets
+                  listPosition
+                  oldListPosition
+                  share 
+                  author {
+                    __typename
+                    dtype
+                    otype
+                    mtid
+                    deleted
+                    published
+                    unhandledTickets 
+                    authorNames {
+                      __typename
+                      otype
+                      mtid           
+                      familyName
+                      givenName
+                      fullName
+                      deleted
+                      published
+                      unhandledTickets 
+                    }
+                  }
+                }
+              }
+              
+                author {
+                  __typename
+                  dtype
+                  otype
+                  mtid
+                  deleted
+                  published
+                  unhandledTickets 
+                  authorNames {
+                    __typename
+                    otype
+                    mtid           
+                    familyName
+                    givenName
+                    fullName
+                    deleted
+                    published
+                    unhandledTickets 
+                  }
+                }
+            }
+            """.trimIndent()
+
+val tweetGraphql = """
+    type Tweet {
+        id: ID!
+        # The tweet text. No more than 140 characters!
+        body: String
+        # When the tweet was published
+        date: Date
+        # Who published the tweet
+        Author: User
+        # Views, retweets, likes, etc
+        Stats: Stat
+    }
+
+    type User {
+        id: ID!
+        username: String
+        first_name: String
+        last_name: String
+        full_name: String
+        name: String @deprecated
+        avatar_url: Url
+        friends: [User]
+    }
+
+    type Stat {
+        views: Int
+        likes: Int
+        retweets: Int
+        responses: Int
+    }
+
+    type Notification {
+        id: ID
+        date: Date
+        type: String
+    }
+
+    type Meta {
+        count: Int
+    }
+
+    scalar Url
+    scalar Date
+
+    type Query {
+        Tweet(id: ID!): Tweet
+        Tweets(limit: Int, skip: Int, sort_field: String, sort_order: String): [Tweet]
+        TweetsMeta: Meta
+        User(id: ID!): User
+        Notifications(limit: Int): [Notification]
+        NotificationsMeta: Meta
+    }
+
+    type Mutation {
+        createTweet (
+            body: String
+        ): Tweet
+        deleteTweet(id: ID!): Tweet
+        markTweetRead(id: ID!): Boolean
+    }
+""".trimIndent()
+
+val tweetQuery = """
+    query testTweetQuery(${"$"}sort_field: String) {
+       Tweets(limit: 10, sort_field: ${"$"}sort_field) {
+            id
+            body
+            date
+            __typename
+            __EVERYTHING
+            Author {
+                username
+                __typename
+                id
+                first_name
+                last_name
+                full_name   
+                friends {
+                    __EVERYTHING
+                }
+            }
+       }
+
+    }
+""".trimIndent()
+
+val tweetQueryExpaned = """query testTweetQuery(${"$"}sort_field: String)  {
+  Tweets(limit: 10, sort_field: ${"$"}sort_field) {
+    id
+    body
+    date
+    __typename
+    Author {
+      username
+      __typename
+      id
+      first_name
+      last_name
+      full_name
+      friends {
+        id
+        username
+        first_name
+        last_name
+        full_name
+        name
+        avatar_url
+      }
+    }
+  }
+}
+
+
+"""

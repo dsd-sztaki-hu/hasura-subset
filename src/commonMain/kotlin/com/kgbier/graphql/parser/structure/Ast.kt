@@ -1,5 +1,9 @@
 package com.kgbier.graphql.parser.structure
 
+interface WithSelectionSet {
+    var selectionSet: List<Selection>
+}
+
 data class Document(
         var definitions: List<Definition>
 )
@@ -15,26 +19,26 @@ data class OperationDefinitionOperation(var definition: Operation) : OperationDe
 data class OperationDefinitionSelectionSet(var selectionSet: List<Selection>) : OperationDefinition()
 sealed class OperationDefinition {
     data class Operation(
-            var operationType: OperationType,
-            var name: String?,
-            var variableDefinitions: List<VariableDefinition>,
-            var directives: List<Directive>,
-            var selectionSet: List<Selection>
-    )
+        var operationType: OperationType,
+        var name: String?,
+        var variableDefinitions: List<VariableDefinition>,
+        var directives: List<Directive>,
+        override var selectionSet: List<Selection>
+    ): WithSelectionSet
 }
 
 data class FragmentDefinition(
-        var name: String,
-        var typeCondition: TypeCondition,
-        var directives: List<Directive>,
-        var selectionSet: List<Selection>
-)
+    var name: String,
+    var typeCondition: TypeCondition,
+    var directives: List<Directive>,
+    override var selectionSet: List<Selection>
+): WithSelectionSet
 
 data class InlineFragment(
-        var typeCondition: TypeCondition?,
-        var directives: List<Directive>,
-        var selectionSet: List<Selection>
-)
+    var typeCondition: TypeCondition?,
+    var directives: List<Directive>,
+    override var selectionSet: List<Selection>
+): WithSelectionSet
 
 data class FragmentSpread(
         var name: String,
@@ -50,12 +54,12 @@ enum class OperationType {
 data class TypeCondition(var namedType: String)
 
 data class Field(
-        var alias: String?,
-        var name: String,
-        var arguments: List<Argument>,
-        var directives: List<Directive>,
-        var selectionSet: List<Selection>
-)
+    var alias: String?,
+    var name: String,
+    var arguments: List<Argument>,
+    var directives: List<Directive>,
+    override var selectionSet: List<Selection>
+) : WithSelectionSet
 
 data class SelectionField(var selection: Field) : Selection()
 data class SelectionFragmentSpread(var selection: FragmentSpread) : Selection()

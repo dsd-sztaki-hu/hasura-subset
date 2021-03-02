@@ -5,13 +5,12 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper
 import com.jfrog.bintray.gradle.BintrayExtension
 import org.gradle.internal.os.OperatingSystem
 
-plugins {
-    kotlin("multiplatform") version "1.4.30"
-    kotlin("plugin.serialization") version "1.4.30"
-//    id("maven-publish")
-    `maven-publish`
-    id("com.jfrog.bintray") version "1.8.4"
-}
+// Reference gradle.properties
+val kotlin_version: String by project
+val ktor_version: String by project
+val kor_version: String by project
+val serialization_version: String by project
+val graphql_java_version: String by project
 
 val artifactName = project.name
 val artifactGroup = project.group.toString()
@@ -35,15 +34,16 @@ val pomDeveloperName = "Balazs E. Pataki"
 group = "hu.sztaki.dsd"
 version = "0.1.0"
 
-
-
+plugins {
+    kotlin("multiplatform") version "1.4.30"
+    kotlin("plugin.serialization") version "1.4.30"
+//    id("maven-publish")
+    `maven-publish`
+    id("com.jfrog.bintray") version "1.8.4"
+}
 
 println("project: $project")
 
-// Reference gradle.properties
-val ktor_version: String by project
-val serialization_version: String by project
-val graphql_java_version: String by project
 
 repositories {
     mavenCentral()
@@ -51,8 +51,19 @@ repositories {
 //    maven("https://kotlin.bintray.com/ktor")
 //    maven("https://kotlin.bintray.com/kotlinx")
     maven("https://jitpack.io")
+//    maven("https://dl.bintray.com/korlibs/korlibs/")
 }
+
 kotlin {
+    // https://youtrack.jetbrains.com/issue/KTOR-2055
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
+                useVersion(kotlin_version)
+            }
+        }
+    }
+
     jvm {
         compilations.all {
             kotlinOptions.jvmTarget = "1.8"
@@ -70,24 +81,24 @@ kotlin {
         }
         nodejs ()
     }
-    val hostOs = System.getProperty("os.name")
-    val isMingwX64 = hostOs.startsWith("Windows")
-    val nativeTarget = when {
-        hostOs == "Mac OS X" -> {
-            macosX64("native") {
-                binaries.all {
-                    // https://kotlinlang.org/docs/reference/mpp-dsl-reference.html#native-targets
-                    // Make sure we use libs from brew (In my install macOS finds /opt/lib first (MacPorts libs), but
-                    // we want to use brew's curl)
-                    linkerOpts = mutableListOf("-L/usr/lib/", "-lcurl")
-                }
-            }
-
-        }
-        hostOs == "Linux" -> linuxX64("native")
-        isMingwX64 -> mingwX64("native")
-        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
-    }
+//    val hostOs = System.getProperty("os.name")
+//    val isMingwX64 = hostOs.startsWith("Windows")
+//    val nativeTarget = when {
+//        hostOs == "Mac OS X" -> {
+//            macosX64("native") {
+//                binaries.all {
+//                    // https://kotlinlang.org/docs/reference/mpp-dsl-reference.html#native-targets
+//                    // Make sure we use libs from brew (In my install macOS finds /opt/lib first (MacPorts libs), but
+//                    // we want to use brew's curl)
+//                    linkerOpts = mutableListOf("-L/usr/lib/", "-lcurl")
+//                }
+//            }
+//
+//        }
+//        hostOs == "Linux" -> linuxX64("native")
+//        isMingwX64 -> mingwX64("native")
+//        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
+//    }
 
     
     sourceSets {
@@ -95,6 +106,8 @@ kotlin {
             dependencies {
                 implementation("io.ktor:ktor-client-core:$ktor_version")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
+                implementation("com.soywiz.korlibs.korio:korio:$kor_version")
+
 //                implementation("asd:qwe:1.0.0")
 //                implementation("com.kgbier.graphql:graphql-parser:1.0.0")
 //                implementation("com.kgbier.graphql:graphql-parser-jvm:1.0.0")
@@ -129,6 +142,7 @@ kotlin {
                 // Dukat unable to generate proper typings as of now so we ignore it
                 implementation(npm("graphql", "15.5.0", generateExternals = false))
                 implementation(npm("graphql-2-json-schema", "0.5.1", generateExternals = true))
+                implementation("com.soywiz.korlibs.korio:korio-js:$kor_version")
             }
         }
         val jsTest by getting {
@@ -136,12 +150,12 @@ kotlin {
                 implementation(kotlin("test-js"))
             }
         }
-        val nativeMain by getting {
-            dependencies {
-                implementation("io.ktor:ktor-client-curl:$ktor_version")
-            }
-        }
-        val nativeTest by getting
+//        val nativeMain by getting {
+//            dependencies {
+//                implementation("io.ktor:ktor-client-curl:$ktor_version")
+//            }
+//        }
+//        val nativeTest by getting
     }
 
     dependencies {
