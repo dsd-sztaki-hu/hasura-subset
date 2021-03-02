@@ -31,6 +31,12 @@ class GraphQLPrinter(
         private val root: Document
         private val indentWidth: Int
         private var indentLevel = 0
+
+        init {
+            this.root = root
+            this.indentWidth = indentWidth
+        }
+
         fun print(): String {
             print(root)
             return builder.toString()
@@ -263,7 +269,6 @@ class GraphQLPrinter(
             builder.append(node.name)
         }
 
-
         private fun print(node: Argument) {
             builder.append(node.name)
             builder.append(": ")
@@ -308,11 +313,6 @@ class GraphQLPrinter(
             builder.append("...")
             builder.append(node.name)
             join(node.directives, " ")
-        }
-
-        init {
-            this.root = root
-            this.indentWidth = indentWidth
         }
     }
 }
