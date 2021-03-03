@@ -119,7 +119,7 @@ class HasuraSubset {
             if (it.selection is Field) {
                 val sel = it.selection as Field
                 // Note: keep any startign with __ except '__everything'
-                sel.selectionSet != null && sel.selectionSet.isEmpty() &&
+                sel.selectionSet.isEmpty() &&
                         (!sel.name.startsWith("__") || sel.name.toLowerCase().startsWith("__everything"))
             }
             else {

@@ -37,8 +37,7 @@ version = "0.1.0"
 plugins {
     kotlin("multiplatform") version "1.4.30"
     kotlin("plugin.serialization") version "1.4.30"
-//    id("maven-publish")
-    `maven-publish`
+    id("maven-publish")
     id("com.jfrog.bintray") version "1.8.4"
 }
 
@@ -67,12 +66,17 @@ kotlin {
     jvm {
         compilations.all {
             kotlinOptions.jvmTarget = "1.8"
-            kotlinOptions.useIR = true
+//            kotlinOptions.useIR = true
         }
     }
     // with js(IR) korio fails
-    js(BOTH) {
+    js(LEGACY) {
+        useCommonJs()
         browser {
+            webpackTask {
+                output.libraryTarget = "commonjs2"
+            }
+            binaries.executable()
             testTask {
                 useKarma {
                     useChromeHeadless()
@@ -110,7 +114,7 @@ kotlin {
                 implementation("com.soywiz.korlibs.korio:korio:$kor_version")
 
 //                implementation("asd:qwe:1.0.0")
-//                implementation("com.kgbier.graphql:graphql-parser:1.0.0")
+//s                implementation("com.kgbier.graphql:graphql-parser:1.0.0")
 //                implementation("com.kgbier.graphql:graphql-parser-jvm:1.0.0")
 //                implementation("com.kgbier.graphql:graphql-parser-js:1.0.0")
             }
