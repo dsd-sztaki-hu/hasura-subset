@@ -53,15 +53,8 @@ val JsonObject.fieldNames: List<String>
 val JsonObject.fieldTypeName: String
     get() {
         // Can be NON_NULL or the actual type
-        var actualType : JsonObject?
-        val topType = this["type"] as JsonObject
-        if (topType.hasOfType) {
-            actualType = topType["ofType"] as JsonObject
-        }
-        else {
-            actualType = topType
-        }
-        return actualType!!.stringValue("name")
+        var actualType = this.baseType
+        return actualType.stringValue("name")
     }
 
 val JsonObject.hasOfType: Boolean
@@ -84,16 +77,8 @@ fun JsonObject.typeOfField(name: String): JsonObject? {
     if (field == null) {
         return null
     }
-    // Can be NON_NULL or the actual type
-    var actualType : JsonObject?
-    val topType = field["type"] as JsonObject
-    if (topType.hasOfType) {
-        actualType = topType["ofType"] as JsonObject
-    }
-    else {
-        actualType = topType
-    }
-    return actualType!!
+    var actualType = field.baseType
+    return field.baseType
 }
 
 /**
@@ -115,17 +100,9 @@ fun JsonObject.typeNameOfField(name: String): String? {
 val JsonObject.fieldKind: String
     get() {
         // Can be NON_NULL or the actual type
-        var actualType : JsonObject?
-        val topType = this["type"] as JsonObject
-        if (topType.hasOfType) {
-            actualType = topType["ofType"] as JsonObject
-        }
-        else {
-            actualType = topType
-        }
+        var actualType = this.baseType
         return actualType!!.stringValue("kind")
     }
-
 
 /**
  * Returns field names for a graphql type object
@@ -149,7 +126,7 @@ val JsonObject.scalarFieldNames: List<String>
 val JsonObject.baseType: JsonObject
     get() {
         val type = this["type"] as JsonObject
-        var actual: JsonObject? = null
+        var actual: JsonObject? = type
         if (type.hasOfType) {
            actual = type.ofType
         }
