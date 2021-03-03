@@ -70,7 +70,8 @@ kotlin {
             kotlinOptions.useIR = true
         }
     }
-    js(IR) {
+    // with js(IR) korio fails
+    js(BOTH) {
         browser {
             testTask {
                 useKarma {

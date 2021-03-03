@@ -77,7 +77,6 @@ fun JsonObject.typeOfField(name: String): JsonObject? {
     if (field == null) {
         return null
     }
-    var actualType = field.baseType
     return field.baseType
 }
 
@@ -89,7 +88,7 @@ fun JsonObject.typeNameOfField(name: String): String? {
     if (type == null) {
         return null
     }
-    return type!!.stringValue("name")
+    return type.stringValue("name")
 }
 
 
@@ -101,7 +100,7 @@ val JsonObject.fieldKind: String
     get() {
         // Can be NON_NULL or the actual type
         var actualType = this.baseType
-        return actualType!!.stringValue("kind")
+        return actualType.stringValue("kind")
     }
 
 /**

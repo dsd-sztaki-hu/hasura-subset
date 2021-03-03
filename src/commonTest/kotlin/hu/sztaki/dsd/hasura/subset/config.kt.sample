@@ -1,0 +1,4 @@
+package hu.sztaki.dsd.hasura.subset
+
+// Set here the absolute path of the src/commonTest/resources directory and copy this file to config.tk
+val testResourceDir="/the/absolut/path/to/src/commonTest/resources"

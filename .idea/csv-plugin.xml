@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/src/commonMain/kotlin/com/kgbier/graphql/printer/GraphQLPrinter.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/src/commonMain/kotlin/hu/sztaki/dsd/GraphqlPrinter.kt">
           <value>
             <Attribute>

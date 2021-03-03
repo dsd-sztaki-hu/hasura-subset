@@ -29,3 +29,4 @@ hs_err_pid*
 
 # Ignore Gradle GUI config
 gradle-app.setting
+/src/commonTest/kotlin/hu/sztaki/dsd/hasura/subset/config.kt

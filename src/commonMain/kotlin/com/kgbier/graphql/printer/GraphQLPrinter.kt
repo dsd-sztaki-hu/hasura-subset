@@ -62,7 +62,7 @@ class GraphQLPrinter(
         }
 
         private fun <T> wrap(start: String, thing: T, end: String, inner: Consumer<T>) {
-            if (thing is List<*> && (thing as List<T>).isEmpty()) {
+            if (thing is List<*> && (thing as List<*>).isEmpty()) {
                 return
             }
             builder.append(start)
@@ -71,7 +71,7 @@ class GraphQLPrinter(
         }
 
         private val newLine: String
-            private get() {
+            get() {
                 val builder = StringBuilder()
                 builder.append("\n")
                 for (i in 0 until indentLevel) {
@@ -155,18 +155,18 @@ class GraphQLPrinter(
                 if (name != null) {
                     builder.append(name)
                 }
-                wrap<List<VariableDefinition>>(
+                wrap(
                     "(",
                     variableDefinitions,
                     ")",
                     object : Consumer<List<VariableDefinition>> {
-                        override fun accept(definitions: List<VariableDefinition>) {
-                            join(definitions, ", ")
+                        override fun accept(t: List<VariableDefinition>) {
+                            join(t, ", ")
                         }
                     })
-                wrap<List<Directive>>(" ", directives, " ", object : Consumer<List<Directive>> {
-                    override fun accept(dirs: List<Directive>) {
-                        join(dirs, " ")
+                wrap(" ", directives, " ", object : Consumer<List<Directive>> {
+                    override fun accept(t: List<Directive>) {
+                        join(t, " ")
                     }
                 })
                 builder.append(" ")
@@ -212,8 +212,8 @@ class GraphQLPrinter(
             builder.append("@")
             builder.append(node.name)
             wrap("(", node.arguments, ")", object : Consumer<List<Argument>> {
-                override fun accept(arguments: List<Argument>) {
-                    join(arguments, ", ")
+                override fun accept(t: List<Argument>) {
+                    join(t, ", ")
                 }
             })
         }
@@ -224,8 +224,8 @@ class GraphQLPrinter(
             builder.append(" on ")
             print(node.typeCondition)
             wrap(" ", node.directives, " ", object : Consumer<List<Directive>> {
-                override fun accept(directives: List<Directive>) {
-                    join(directives, " ")
+                override fun accept(t: List<Directive>) {
+                    join(t, " ")
                 }
             })
             print(node.selectionSet)
@@ -233,8 +233,8 @@ class GraphQLPrinter(
 
         private fun print(node: Value.ValueList) {
             wrap("[", node.value, "]", object : Consumer<List<Value>> {
-                override fun accept(values: List<Value>) {
-                    join(values, ", ")
+                override fun accept(t: List<Value>) {
+                    join(t, ", ")
                 }
             })
         }
@@ -253,8 +253,8 @@ class GraphQLPrinter(
 
         private fun print(node: Value.ValueObject) {
             wrap("{", node.value, "}", object : Consumer<List<ObjectField>> {
-                override fun accept(fields: List<ObjectField>) {
-                    join(fields, ", ")
+                override fun accept(t: List<ObjectField>) {
+                    join(t, ", ")
                 }
             })
         }
@@ -282,14 +282,14 @@ class GraphQLPrinter(
             }
             builder.append(node.name)
             val arguments: List<Argument> = node.arguments
-            wrap<List<Argument>>("(", arguments, ")", object : Consumer<List<Argument>> {
-                override fun accept(args: List<Argument>) {
-                    join(args, ", ")
+            wrap("(", arguments, ")", object : Consumer<List<Argument>> {
+                override fun accept(t: List<Argument>) {
+                    join(t, ", ")
                 }
             })
             join(node.directives, " ")
             val selectionSet = node.selectionSet
-            if (selectionSet != null) {
+            if (!selectionSet.isEmpty()) {
                 print(selectionSet)
             }
         }
