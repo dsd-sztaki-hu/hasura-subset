@@ -39,7 +39,6 @@ class HasuraSubsetTest {
         assertEquals(tweetQueryExpaned, result)
     }
 
-    // For now, this won't work in JS
     @Test
     fun test_processGraphql_big_schema() = suspendTest {
         val hasuraSubset = HasuraSubset()
