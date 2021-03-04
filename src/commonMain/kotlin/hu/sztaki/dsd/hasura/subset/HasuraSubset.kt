@@ -21,7 +21,7 @@ expect fun graphqlSchemaToIntrospectedSchema(schema: String): String
 expect fun graphqlQueryToAst(query: String): String
 
 /**
- * Hasura subsetting API.
+ * Hasura subsetting tool.
  */
 class HasuraSubset {
 
@@ -63,7 +63,6 @@ class HasuraSubset {
         }
 
         val queryAST = GraphQLParser.parseWithResult(graphqlQuery)
-
         if (queryAST.match == null) {
             throw HasuraSubsetException("Error while parsing query at ${queryAST.rest.state.row}:${queryAST.rest.state.col}")
         }
@@ -77,7 +76,7 @@ class HasuraSubset {
             }
 
             // Find top level selection and starting there recursively expand __everything in all subsequent
-            // selction lists
+            // selection lists
             op.selectionSet.forEach {
                 when(it) {
                     is SelectionField -> {
@@ -105,18 +104,19 @@ class HasuraSubset {
      * and so we don't have to always handpick fields. This is also comes handy when schema changes as we don't have
      * to update when a simple field changes.
      */
-    private fun expandEverythingSelection(
+    fun expandEverythingSelection(
         target: WithSelectionSet,
         typeName: String,
-        alwaysIncludeTypeName: Boolean,
-        document: JsonObject)
+        alwaysIncludeUUTypeName: Boolean,
+        schemaDocument: JsonObject,
+        recurse: Boolean = true)
     {
-        val opTypeDefinition = document.getType(typeName)
+        val opTypeDefinition = schemaDocument.getType(typeName)
         if (opTypeDefinition == null) {
             HasuraSubsetException("No type definition ${opTypeDefinition} found in graphql schema")
         }
 
-        // Do we have an __everythig slection
+        // Do we have an __everything slection
         var everythingSelection = target.selectionSet.filter {
             when(it) {
                 is SelectionField -> {
@@ -128,7 +128,7 @@ class HasuraSubset {
         }
 
         // Collect all scalars except those starting with __ (except __everythig). Ie. __typename is only
-        // inluded in final list if explicitly set, __everythig won't generate it on its own.
+        // included in final list if explicitly set, __everything won't generate it on its own.
         var scalarSelections = target.selectionSet.filter {
             if (it.selection is Field) {
                 val sel = it.selection as Field
@@ -156,7 +156,7 @@ class HasuraSubset {
                 finalList.add(SelectionField(Field(null, name, emptyList(), emptyList(), emptyList())))
             }
             finalList.addAll(remaining)
-            if (alwaysIncludeTypeName) {
+            if (alwaysIncludeUUTypeName) {
                 val uutypeName = finalList.find {
                     if (it.selection is Field) {
                         (it.selection as Field).name == "__typename"
@@ -173,12 +173,14 @@ class HasuraSubset {
         }
 
         // Recurse into complex selections
-        target.selectionSet.forEach {
-            if (it.selection is Field ){
-                val field = it.selection as Field
-                if (!field.selectionSet.isEmpty()) {
-                    val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
-                    expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeTypeName, document)
+        if (recurse) {
+            target.selectionSet.forEach {
+                if (it.selection is Field) {
+                    val field = it.selection as Field
+                    if (!field.selectionSet.isEmpty()) {
+                        val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
+                        expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeUUTypeName, schemaDocument)
+                    }
                 }
             }
         }
