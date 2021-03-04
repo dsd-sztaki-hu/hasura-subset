@@ -17,7 +17,6 @@ class HasuraSubsetTest {
         for (test in tests) {
             println("Running test: "+test.description)
             val result = hasuraSubset.jsonToUpsert(
-                test.graphql,
                 test.jsonResult,
                 {
                     HasuraSubset.OnConflict(
@@ -93,7 +92,6 @@ class HasuraSubsetTest {
         println(result.prettifiedJson)
 
         val upsertRes = hasuraSubset.jsonToUpsert(
-            processedQuery,
             result,
             {
                 HasuraSubset.OnConflict(

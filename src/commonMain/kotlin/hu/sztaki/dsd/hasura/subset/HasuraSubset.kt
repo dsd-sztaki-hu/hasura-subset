@@ -157,7 +157,7 @@ class HasuraSubset {
             }
             finalList.addAll(remaining)
             if (alwaysIncludeTypeName) {
-                val typeName = finalList.find {
+                val uutypeName = finalList.find {
                     if (it.selection is Field) {
                         (it.selection as Field).name == "__typename"
                     }
@@ -165,7 +165,7 @@ class HasuraSubset {
                         false
                     }
                 }
-                if (typeName == null) {
+                if (uutypeName == null) {
                     finalList.add(0, SelectionField(Field(null, "__typename", emptyList(), emptyList(), emptyList())))
                 }
             }
@@ -207,18 +207,17 @@ class HasuraSubset {
     }
 
     /**
-     * @param jsonString the JSON to turn into a Hasura upsert
+     * @param queryResultJson the JSON to turn into a Hasura upsert
      * @param onConflict optional function to generate OnConflict values for a given type.
      */
     @Throws(HasuraSubsetException::class)
     fun jsonToUpsert(
-        graphqlQuery: String,
-        jsonString: String,
+        queryResultJson: String,
         onConflict: (typeName: String) -> OnConflict,
         insertName: ((typeName: String) -> String)? = null
     ) : UpsertResult
     {
-        val json = Json.parseToJsonElement(jsonString)
+        val json = Json.parseToJsonElement(queryResultJson)
 
         val root = if (json is JsonObject) json else throw HasuraSubsetException("json in not an object")
         val data = json["data"] as JsonObject? ?: throw HasuraSubsetException("key 'data' is not found in root")
@@ -260,7 +259,7 @@ class HasuraSubset {
             // Either use the name provided by the insertName() function or generate the default hasura insert name
             // derived from the type name
             val insert = if (insertName != null) insertName(dataAndConflict!!.type) else "insert_${dataAndConflict!!.type}"
-            upsertGraphql.append("\$objects_$key: [${dataAndConflict!!.type}_insert_input!]!, \$on_conflict_$key: ${dataAndConflict.type}_on_conflict")
+            upsertGraphql.append("\$objects_$key: [${dataAndConflict.type}_insert_input!]!, \$on_conflict_$key: ${dataAndConflict.type}_on_conflict")
             upsertGraphqlOperations.append("""
                 ${key}: $insert(objects: ${"$"}objects_$key, on_conflict: ${"$"}on_conflict_$key) {
                     affected_rows

@@ -28,7 +28,7 @@ actual fun graphqlSchemaToIntrospectedSchema(schema: String): String
     val executionResult = build.execute(INTROSPECTION_QUERY)
 
     val intro = executionResult.getData() as Map<String, Any>
-    return (intro["__schema"] as Map<String, Any>).toJsonObject().toString()
+    return (intro["__schema"] as Map<*, *>).toJsonObject().toString()
 }
 
 actual fun graphqlQueryToAst(query: String): String
