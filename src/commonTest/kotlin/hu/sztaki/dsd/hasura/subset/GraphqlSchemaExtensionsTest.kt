@@ -9,7 +9,7 @@ import kotlin.test.*
 
 class GraphqlSchemaExtensionsTest {
 
-    lateinit var introspection: JsonObject
+    var introspection: JsonObject
 
     init {
         val schema = tweetGraphql
@@ -57,26 +57,28 @@ class GraphqlSchemaExtensionsTest {
         var field = type!!.getField("body")
         assertNotNull(field)
         assertEquals(field.stringValue("name"), "body")
-        assertNull(type!!.getField("bodyx"))
+        assertNull(type.getField("bodyx"))
     }
 
     @Test
     fun test_typeNameOfField() {
         val type = introspection.getType("Tweet")
 
-        var fieldName = type!!.typeNameOfField("body")
+        assertNotNull(type)
+
+        var fieldName = type.typeNameOfField("body")
         assertNotNull(fieldName)
         assertEquals(fieldName, "String")
 
-        fieldName = type!!.typeNameOfField("Author")
+        fieldName = type.typeNameOfField("Author")
         assertNotNull(fieldName)
         assertEquals(fieldName, "User")
 
-        fieldName = type!!.typeNameOfField("id")
+        fieldName = type.typeNameOfField("id")
         assertNotNull(fieldName)
         assertEquals(fieldName, "ID")
 
-        fieldName = type!!.typeNameOfField("bodyx")
+        fieldName = type.typeNameOfField("bodyx")
         assertNull(fieldName)
     }
 
@@ -84,19 +86,21 @@ class GraphqlSchemaExtensionsTest {
     fun test_typeOfField() {
         val type = introspection.getType("Tweet")
 
-        var fieldType = type!!.typeOfField("body")
+        assertNotNull(type)
+
+        var fieldType = type.typeOfField("body")
         assertNotNull(fieldType)
         assertEquals(fieldType.stringValue("name"), "String")
 
-        fieldType = type!!.typeOfField("Author")
+        fieldType = type.typeOfField("Author")
         assertNotNull(fieldType)
         assertEquals(fieldType.stringValue("name"), "User")
 
-        fieldType = type!!.typeOfField("id")
+        fieldType = type.typeOfField("id")
         assertNotNull(fieldType)
         assertEquals(fieldType.stringValue("name"), "ID")
 
-        fieldType = type!!.typeOfField("bodyx")
+        fieldType = type.typeOfField("bodyx")
         assertNull(fieldType)
     }
 }

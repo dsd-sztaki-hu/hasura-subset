@@ -120,10 +120,10 @@ class GraphQLPrinter(
         private fun print(node: Document) {
             for (defintition in node.definitions) {
                 print(defintition)
-                line(2)
+                line()
             }
-            line()
         }
+
         private fun print(node: DefinitionExecutable) {
             print(node.definition)
         }

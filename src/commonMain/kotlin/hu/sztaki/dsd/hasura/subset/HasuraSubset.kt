@@ -3,6 +3,9 @@ package hu.sztaki.dsd.hasura.subset
 import com.kgbier.graphql.parser.GraphQLParser
 import com.kgbier.graphql.parser.structure.*
 import com.kgbier.graphql.printer.GraphQLPrinter
+import com.soywiz.krypto.MD5
+import io.ktor.client.*
+import io.ktor.client.request.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -39,6 +42,8 @@ class HasuraSubset {
         val columns: List<String>
     )
 
+    val cachedSchemas = mutableMapOf<String, JsonObject>()
+
     /**
      * Process graphql query by extending hasura-subset macros.
      *
@@ -46,13 +51,18 @@ class HasuraSubset {
      */
     fun processGraphql(
         graphqlQuery: String,
-        graphqlSchema: String
+        graphqlSchema: String,
+        alwaysIncludeTypeName: Boolean = false
     ) : String
     {
-        val queryAST = GraphQLParser.parseWithResult(graphqlQuery)
+        // Try to reuse cached version
+        val hash = MD5.digest(graphqlSchema.encodeToByteArray()).hex
+        var schemaDocument = cachedSchemas[hash] ?: Json.decodeFromString(graphqlSchemaToIntrospectedSchema(graphqlSchema))
+        if (cachedSchemas[hash] == null) {
+            cachedSchemas.put(hash, schemaDocument)
+        }
 
-        var graphqlIntroString = graphqlSchemaToIntrospectedSchema(graphqlSchema)
-        val schemaDocument = Json.decodeFromString<JsonObject>(graphqlIntroString)
+        val queryAST = GraphQLParser.parseWithResult(graphqlQuery)
 
         if (queryAST.match == null) {
             throw HasuraSubsetException("Error while parsing query at ${queryAST.rest.state.row}:${queryAST.rest.state.col}")
@@ -79,7 +89,7 @@ class HasuraSubset {
 
                         val opTypeName = opInIntro.baseType.stringValue("name")
                         val selection = op.selectionSet[0].selection ?: return@forEach
-                        expandEverythingSelection(selection, opTypeName, schemaDocument)
+                        expandEverythingSelection(selection, opTypeName, alwaysIncludeTypeName, schemaDocument)
                     }
                     is SelectionFragmentSpread -> TODO()
                     is SelectionInlineFragment -> TODO()
@@ -95,7 +105,11 @@ class HasuraSubset {
      * and so we don't have to always handpick fields. This is also comes handy when schema changes as we don't have
      * to update when a simple field changes.
      */
-    private fun expandEverythingSelection(target: WithSelectionSet, typeName: String, document: JsonObject)
+    private fun expandEverythingSelection(
+        target: WithSelectionSet,
+        typeName: String,
+        alwaysIncludeTypeName: Boolean,
+        document: JsonObject)
     {
         val opTypeDefinition = document.getType(typeName)
         if (opTypeDefinition == null) {
@@ -142,6 +156,19 @@ class HasuraSubset {
                 finalList.add(SelectionField(Field(null, name, emptyList(), emptyList(), emptyList())))
             }
             finalList.addAll(remaining)
+            if (alwaysIncludeTypeName) {
+                val typeName = finalList.find {
+                    if (it.selection is Field) {
+                        (it.selection as Field).name == "__typename"
+                    }
+                    else {
+                        false
+                    }
+                }
+                if (typeName == null) {
+                    finalList.add(0, SelectionField(Field(null, "__typename", emptyList(), emptyList(), emptyList())))
+                }
+            }
             target.selectionSet = finalList
         }
 
@@ -151,12 +178,33 @@ class HasuraSubset {
                 val field = it.selection as Field
                 if (!field.selectionSet.isEmpty()) {
                     val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
-                    expandEverythingSelection(field, fieldTypeName!!, document)
+                    expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeTypeName, document)
                 }
             }
         }
     }
 
+    /**
+     * Executes a graphql query  on a given server.
+     */
+    suspend fun executeGraphqlQuery(
+        query: String,
+        variables: Map<String, Any>,
+        server: HasuraServer
+    ): String {
+        val graphqlJson = Json.encodeToString(buildJsonObject {
+            put("query", query)
+            put("variables", variables.toJsonObject())
+        })
+
+        return server.client.post {
+            url (server.url)
+            headers {
+                set("X-Hasura-Admin-Secret", server.adminSecret)
+            }
+            body = graphqlJson
+        }
+    }
 
     /**
      * @param jsonString the JSON to turn into a Hasura upsert

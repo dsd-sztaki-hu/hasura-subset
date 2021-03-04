@@ -936,7 +936,7 @@ val graphqlQueryExample2 = """
             """.trimIndent()
 
 val graphqlQueryExampleMtmt = """
-            query exampleQuery(${"$"}param: [bigint!]!){
+            query exampleQuery(${"$"}param: bigint!){
               publication(mtid:${"$"}param) {
                 __everything            
                 authorships {
@@ -953,7 +953,7 @@ val graphqlQueryExampleMtmt = """
             """.trimIndent()
 
 val graphqlQueryExampleMtmtExpanded = """
-    query exampleQuery(${"$"}param: [bigint!]!)  {
+    query exampleQuery(${"$"}param: bigint!)  {
       publication(mtid: ${"$"}param) {
         abstractText
         acceptanceYear
@@ -1331,9 +1331,7 @@ val graphqlQueryExampleMtmtExpanded = """
         }
       }
     }
-
-
-
+    
 """.trimIndent()
 
 val tweetGraphql = """
@@ -1447,6 +1445,32 @@ val tweetQueryExpaned = """query testTweetQuery(${"$"}sort_field: String)  {
     }
   }
 }
+"""
 
-
+val tweetQueryExpanedAlwaysIncludeTypeName = """query testTweetQuery(${"$"}sort_field: String)  {
+  Tweets(limit: 10, sort_field: ${"$"}sort_field) {
+    id
+    body
+    date
+    __typename
+    Author {
+      username
+      __typename
+      id
+      first_name
+      last_name
+      full_name
+      friends {
+        __typename
+        id
+        username
+        first_name
+        last_name
+        full_name
+        name
+        avatar_url
+      }
+    }
+  }
+}
 """

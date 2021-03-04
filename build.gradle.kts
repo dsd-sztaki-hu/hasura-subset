@@ -8,7 +8,9 @@ import org.gradle.internal.os.OperatingSystem
 // Reference gradle.properties
 val kotlin_version: String by project
 val ktor_version: String by project
-val kor_version: String by project
+val korio_version: String by project
+val krypto_version: String by project
+val klock_version: String by project
 val serialization_version: String by project
 val graphql_java_version: String by project
 
@@ -111,12 +113,9 @@ kotlin {
             dependencies {
                 implementation("io.ktor:ktor-client-core:$ktor_version")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
-                implementation("com.soywiz.korlibs.korio:korio:$kor_version")
-
-//                implementation("asd:qwe:1.0.0")
-//s                implementation("com.kgbier.graphql:graphql-parser:1.0.0")
-//                implementation("com.kgbier.graphql:graphql-parser-jvm:1.0.0")
-//                implementation("com.kgbier.graphql:graphql-parser-js:1.0.0")
+                implementation("com.soywiz.korlibs.korio:korio:$korio_version")
+                implementation("com.soywiz.korlibs.krypto:krypto:$krypto_version")
+//                implementation("com.soywiz.korlibs.klock:klock:$klock_version")
             }
         }
         val commonTest by getting {
@@ -147,7 +146,7 @@ kotlin {
                 // Dukat unable to generate proper typings as of now so we ignore it
                 implementation(npm("graphql", "15.5.0", generateExternals = false))
                 implementation(npm("graphql-2-json-schema", "0.5.1", generateExternals = true))
-                implementation("com.soywiz.korlibs.korio:korio-js:$kor_version")
+                implementation("com.soywiz.korlibs.korio:korio-js:$korio_version")
             }
         }
         val jsTest by getting {

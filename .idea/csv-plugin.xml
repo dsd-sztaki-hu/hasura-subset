@@ -3,6 +3,13 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
+        <entry key="/build.gradle.kts">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/src/commonMain/kotlin/com/kgbier/graphql/parser/Parser.kt">
           <value>
             <Attribute>
@@ -56,6 +63,13 @@
           <value>
             <Attribute>
               <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/src/commonTest/kotlin/hu/sztaki/dsd/hasura/subset/HasuraSubsetTest.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>

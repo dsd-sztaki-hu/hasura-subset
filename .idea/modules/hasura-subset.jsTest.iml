@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module external.system.module.type="sourceSet" type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <output-test url="file://$MODULE_DIR$/../../build/js/packages/hasura-subset-jsLegacy-test/kotlin" />
+    <output-test url="file://$MODULE_DIR$/../../build/js/packages/hasura-subset-test/kotlin" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../src/jsTest">
       <sourceFolder url="file://$MODULE_DIR$/../../src/jsTest/kotlin" type="kotlin-test" />
@@ -31,7 +31,6 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" scope="TEST" name="Gradle: io.ktor:ktor-client-mock:1.5.1" level="project" />
     <orderEntry type="module-library" scope="TEST">
       <library>
         <CLASSES>
@@ -41,6 +40,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" scope="TEST" name="Gradle: io.ktor:ktor-client-mock:1.5.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: io.ktor:ktor-client-core:1.5.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.jetbrains.kotlin:kotlin-test-js:1.4.30" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.jetbrains.kotlin:kotlin-test-common:1.4.30" level="project" />
