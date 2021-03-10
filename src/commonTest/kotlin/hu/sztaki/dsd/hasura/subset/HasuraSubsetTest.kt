@@ -25,10 +25,10 @@ class HasuraSubsetTest {
                     )
                 }
             )
-            println(result.graphql)
+            println(result.mutation)
             println(result.variables)
 
-            assertEquals(test.expectedGraphql, result.graphql)
+            assertEquals(test.expectedGraphql, result.mutation)
             assertEquals(test.expectedVariables, result.variables)
         }
     }
@@ -80,7 +80,7 @@ class HasuraSubsetTest {
 
         val processedQuery = hasuraSubset.processGraphql(graphqlQueryExampleMtmt, schema, true)
 
-        val result = hasuraSubset.executeGraphqlQuery(
+        var result = hasuraSubset.executeGraphqlOperation(
             processedQuery,
             mapOf("param" to 3156695),
             HasuraServer(
@@ -101,8 +101,19 @@ class HasuraSubsetTest {
             }
         )
 
-        println("upsertRes.graphql: "+upsertRes.graphql)
+        println("upsertRes.graphql: "+upsertRes.mutation)
         println("upsertRes.variables" + upsertRes.variables.prettifiedJson)
 
+        result = hasuraSubset.executeGraphqlOperation(
+            upsertRes.mutation,
+            upsertRes.variables,
+            HasuraServer(
+                HttpClient(),
+                "http://localhost:8835/v1/graphql",
+                "mtmt2"
+            )
+        )
+
+        println("mutation result: $result")
     }
 }

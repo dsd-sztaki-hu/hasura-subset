@@ -953,385 +953,386 @@ val graphqlQueryExampleMtmt = """
             """.trimIndent()
 
 val graphqlQueryExampleMtmtExpanded = """
-    query exampleQuery(${"$"}param: bigint!)  {
-      publication(mtid: ${"$"}param) {
-        abstractText
-        acceptanceYear
-        adminApproved
-        adminApproverForSort
-        adminApproverMtid
-        altTitles
-        applicationYear
+query exampleQuery(${"$"}param: bigint!)  {
+  publication(mtid: ${"$"}param) {
+    abstractText
+    acceptanceYear
+    adminApproved
+    adminApproverForSort
+    adminApproverMtid
+    altTitles
+    applicationYear
+    approved
+    approverMtid
+    authorCount
+    bookMtid
+    bulkDuplumSearchDone
+    caseNumber
+    categoryForSort
+    categoryMtid
+    chapterCount
+    checked
+    checkerMtid
+    citation
+    citationCount
+    citationCountUnpublished
+    citationCountWoOther
+    citedCount
+    citedPubCount
+    citingPubCount
+    citingPubCountWoOther
+    collaboration
+    comment
+    comment2
+    conferenceMtid
+    conferencePublication
+    consultant
+    consultant2
+    consultantAuthor2Mtid
+    consultantAuthorMtid
+    contributorCount
+    core
+    countryMtid
+    created
+    creator
+    deleted
+    deletedDate
+    description0
+    description1
+    description2
+    description3
+    description4
+    description5
+    digital
+    directInstituteCount
+    directInstitutesForSort
+    disciplineMtid
+    doiCitationCount
+    dtype
+    duplumKey
+    duplumRole
+    duplumSearchResultMtid
+    editionNumber
+    endDate
+    error
+    externalSource
+    firstAuthor
+    firstPage
+    firstPageOrInternalIdForSort
+    foreignEdition
+    foreignEditionCitationCount
+    foreignLanguage
+    fromCitation
+    fullPublication
+    group_mtid
+    hasCitationDuplums
+    ifRatingMtid
+    impactFactor
+    inSelectedPubs
+    independentCitCountWoOther
+    independentCitationCount
+    independentCitingPubCount
+    independentCitingPubCountWoOther
+    internalId
+    ipc
+    issue
+    journalForSort
+    journalMtid
+    journalName
+    labelEng
+    labelHun
+    languagesForSort
+    lastDuplumOK
+    lastDuplumSearch
+    lastModified
+    lastModifier
+    lastModifierAdmin
+    lastPage
+    lastRefresh
+    lastTemplateMake
+    lastTouched
+    locked
+    lockerMtid
+    mabDisciplineMtid
+    missingAuthor
+    mtid
+    nationalOrigin
+    nationalOriginCitationCount
+    number
+    oaByAuthorMtid
+    oaCheckDate
+    oaEmbargoDate
+    oaFree
+    oaLink
+    oaType
+    oaTypeDisp
+    oldId
+    oldTimestamp
+    otype
+    ownerAuthorCount
+    ownerInstituteCount
+    packet
+    pageLength
+    patentCountryMtid
+    prevValid
+    printed
+    pubStats
+    publicationPending
+    publishDate
+    published
+    publishedYear
+    publishedYearEnd
+    ratingsForSort
+    referenceList
+    refreshed
+    reviewer
+    school
+    scopusCitationCount
+    selfCitationCount
+    sourceOfData
+    sourceYear
+    startDate
+    status
+    subSubTypeMtid
+    subTitle
+    subTypeForSort
+    subTypeMtid
+    submissionNumber
+    submissionYear
+    tempLocked
+    tempLockerIdString
+    template2Eng
+    template2Hun
+    templateEng
+    templateHun
+    title
+    typeForSort
+    typeMtid
+    unhandledCitationCount
+    unhandledCitingPubCount
+    unhandledTickets
+    unprocessedData
+    userChangeableUntil
+    validFromYear
+    validToYear
+    validated
+    validatorForSort
+    validatorMtid
+    volume
+    volumeNumber
+    volumeTitle
+    wosCitationCount
+    authorships {
+      affiliation
+      approved
+      approverMtid
+      authorMtid
+      authorTyped
+      comment
+      comment2
+      corresponding
+      created
+      creator
+      deleted
+      deletedDate
+      dtype
+      editorTyped
+      error
+      familyName
+      first
+      fullName
+      givenName
+      labelEng
+      labelHun
+      last
+      lastModified
+      lastModifier
+      lastModifierAdmin
+      lastRefresh
+      lastTemplateMake
+      lastTouched
+      listPosition
+      locked
+      lockerMtid
+      mtid
+      oldId
+      oldListPosition
+      oldTimestamp
+      orcid
+      otherTyped
+      otype
+      prevValid
+      publicationMtid
+      published
+      refreshed
+      share
+      status
+      template2Eng
+      template2Hun
+      templateEng
+      templateHun
+      typeMtid
+      unhandledTickets
+      validFromYear
+      validToYear
+      author {
+        affiliationsForSort
+        allowedIps
+        altTab
         approved
         approverMtid
-        authorCount
-        bookMtid
-        bulkDuplumSearchDone
-        caseNumber
-        categoryForSort
-        categoryMtid
-        chapterCount
-        checked
-        checkerMtid
-        citation
+        auxName
+        birthDate
+        birthPlace
+        chosenUserName
         citationCount
-        citationCountUnpublished
-        citationCountWoOther
-        citedCount
-        citedPubCount
         citingPubCount
-        citingPubCountWoOther
-        collaboration
+        citsCompleteEnd
+        citsCompleteStart
         comment
         comment2
-        conferenceMtid
-        conferencePublication
-        consultant
-        consultant2
-        consultantAuthor2Mtid
-        consultantAuthorMtid
-        contributorCount
-        core
-        countryMtid
         created
         creator
+        dead
+        deathDate
         deleted
         deletedDate
-        description0
-        description1
-        description2
-        description3
-        description4
-        description5
-        digital
-        directInstituteCount
-        directInstitutesForSort
-        disciplineMtid
+        digestMode
         doiCitationCount
         dtype
-        duplumKey
         duplumRole
         duplumSearchResultMtid
-        editionNumber
-        endDate
+        email
+        emailAddressConfirmed
+        enabled
         error
-        externalSource
-        firstAuthor
-        firstPage
-        firstPageOrInternalIdForSort
-        foreignEdition
+        familyName
         foreignEditionCitationCount
-        foreignLanguage
-        fromCitation
-        fullPublication
-        group_mtid
-        hasCitationDuplums
-        ifRatingMtid
-        impactFactor
-        inSelectedPubs
-        independentCitCountWoOther
+        gender
+        givenName
+        inactivatedAt
+        inactivatedByMtid
+        inactivationComment
+        inactiveFrom
         independentCitationCount
         independentCitingPubCount
-        independentCitingPubCountWoOther
-        internalId
-        ipc
-        issue
-        journalForSort
-        journalMtid
-        journalName
         labelEng
         labelHun
-        languagesForSort
+        lastDataChange
         lastDuplumOK
         lastDuplumSearch
+        lastLogin
+        lastLogin2
         lastModified
         lastModifier
         lastModifierAdmin
-        lastPage
+        lastOnlineAction
         lastRefresh
         lastTemplateMake
         lastTouched
         locked
         lockerMtid
-        mabDisciplineMtid
-        missingAuthor
+        moreCitationsPerCitingDoc
         mtid
-        nationalOrigin
         nationalOriginCitationCount
-        number
-        oaByAuthorMtid
-        oaCheckDate
-        oaEmbargoDate
-        oaFree
-        oaLink
-        oaType
-        oaTypeDisp
+        needsToChangePasswordUntil
         oldId
         oldTimestamp
         otype
-        ownerAuthorCount
-        ownerInstituteCount
-        packet
-        pageLength
-        patentCountryMtid
+        passwordHash
+        phone
+        policyAcceptDate
         prevValid
-        printed
         pubStats
-        publicationPending
-        publishDate
+        publicationCount
         published
-        publishedYear
-        publishedYearEnd
-        ratingsForSort
-        referenceList
+        pubsCompleteEnd
+        pubsCompleteStart
+        pwFormat
+        receiveEmailAlertsForForumEvents
+        receiveEmailAlertsForTicketEvents
         refreshed
-        reviewer
-        school
+        registrationComment
+        registrationDate
+        rights
+        robot
+        robotSupervisorMtid
         scopusCitationCount
-        selfCitationCount
-        sourceOfData
-        sourceYear
-        startDate
+        selectedPubListIsEmpty
+        selectedPubListIsOpen
+        selectedPubListMtid
+        shibCreated
+        shibId
+        shibIdProvider
+        speciality
         status
-        subSubTypeMtid
-        subTitle
-        subTypeForSort
-        subTypeMtid
-        submissionNumber
-        submissionYear
-        tempLocked
-        tempLockerIdString
+        summaryTable2Code
+        summaryTable2Mtid
+        summaryTable2csvMtid
+        summaryTable2engMtid
+        summaryTable2templateMtid
+        summaryTableCsvMtid
+        summaryTableEngMtid
+        summaryTableMtid
         template2Eng
         template2Hun
         templateEng
         templateHun
-        title
-        typeForSort
-        typeMtid
+        temporaryAccessToken
+        temporaryAccessTokenValidBefore
         unhandledCitationCount
         unhandledCitingPubCount
         unhandledTickets
-        unprocessedData
-        userChangeableUntil
+        userNotificationTimeMtid
+        username
         validFromYear
         validToYear
-        validated
-        validatorForSort
-        validatorMtid
-        volume
-        volumeNumber
-        volumeTitle
         wosCitationCount
-        authorships {
-          affiliation
+        authorNames {
           approved
           approverMtid
           authorMtid
-          authorTyped
           comment
           comment2
-          corresponding
           created
           creator
           deleted
           deletedDate
-          dtype
-          editorTyped
           error
           familyName
-          first
           fullName
           givenName
           labelEng
           labelHun
-          last
           lastModified
           lastModifier
           lastModifierAdmin
           lastRefresh
           lastTemplateMake
           lastTouched
-          listPosition
           locked
           lockerMtid
           mtid
           oldId
-          oldListPosition
           oldTimestamp
-          orcid
-          otherTyped
           otype
           prevValid
-          publicationMtid
           published
           refreshed
-          share
           status
           template2Eng
           template2Hun
           templateEng
           templateHun
-          typeMtid
           unhandledTickets
           validFromYear
           validToYear
-          author {
-            affiliationsForSort
-            allowedIps
-            altTab
-            approved
-            approverMtid
-            auxName
-            birthDate
-            birthPlace
-            chosenUserName
-            citationCount
-            citingPubCount
-            citsCompleteEnd
-            citsCompleteStart
-            comment
-            comment2
-            created
-            creator
-            dead
-            deathDate
-            deleted
-            deletedDate
-            digestMode
-            doiCitationCount
-            dtype
-            duplumRole
-            duplumSearchResultMtid
-            email
-            emailAddressConfirmed
-            enabled
-            error
-            familyName
-            foreignEditionCitationCount
-            gender
-            givenName
-            inactivatedAt
-            inactivatedByMtid
-            inactivationComment
-            inactiveFrom
-            independentCitationCount
-            independentCitingPubCount
-            labelEng
-            labelHun
-            lastDuplumOK
-            lastDuplumSearch
-            lastLogin
-            lastLogin2
-            lastModified
-            lastModifier
-            lastModifierAdmin
-            lastOnlineAction
-            lastRefresh
-            lastTemplateMake
-            lastTouched
-            locked
-            lockerMtid
-            moreCitationsPerCitingDoc
-            mtid
-            nationalOriginCitationCount
-            needsToChangePasswordUntil
-            oldId
-            oldTimestamp
-            otype
-            passwordHash
-            phone
-            policyAcceptDate
-            prevValid
-            pubStats
-            publicationCount
-            published
-            pubsCompleteEnd
-            pubsCompleteStart
-            pwFormat
-            receiveEmailAlertsForForumEvents
-            receiveEmailAlertsForTicketEvents
-            refreshed
-            registrationComment
-            registrationDate
-            rights
-            robot
-            robotSupervisorMtid
-            scopusCitationCount
-            selectedPubListIsOpen
-            selectedPubListMtid
-            selected_pub_list_is_empty
-            shibCreated
-            shibId
-            shibIdProvider
-            speciality
-            status
-            summaryTable2Code
-            summaryTable2Mtid
-            summaryTable2csvMtid
-            summaryTable2engMtid
-            summaryTable2templateMtid
-            summaryTableCsvMtid
-            summaryTableEngMtid
-            summaryTableMtid
-            template2Eng
-            template2Hun
-            templateEng
-            templateHun
-            temporaryAccessToken
-            temporaryAccessTokenValidBefore
-            unhandledCitationCount
-            unhandledCitingPubCount
-            unhandledTickets
-            userNotificationTimeMtid
-            username
-            validFromYear
-            validToYear
-            wosCitationCount
-            authorNames {
-              approved
-              approverMtid
-              authorMtid
-              comment
-              comment2
-              created
-              creator
-              deleted
-              deletedDate
-              error
-              familyName
-              fullName
-              givenName
-              labelEng
-              labelHun
-              lastModified
-              lastModifier
-              lastModifierAdmin
-              lastRefresh
-              lastTemplateMake
-              lastTouched
-              locked
-              lockerMtid
-              mtid
-              oldId
-              oldTimestamp
-              otype
-              prevValid
-              published
-              refreshed
-              status
-              template2Eng
-              template2Hun
-              templateEng
-              templateHun
-              unhandledTickets
-              validFromYear
-              validToYear
-            }
-          }
         }
       }
     }
-    
+  }
+}
+
 """.trimIndent()
 
 val tweetGraphql = """

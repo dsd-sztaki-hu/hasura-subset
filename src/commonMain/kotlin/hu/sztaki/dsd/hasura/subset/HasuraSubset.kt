@@ -33,7 +33,7 @@ class HasuraSubset {
     )
 
     data class UpsertResult(
-        val graphql: String,
+        val mutation: String,
         val variables: String
     )
 
@@ -189,14 +189,31 @@ class HasuraSubset {
     /**
      * Executes a graphql query  on a given server.
      */
-    suspend fun executeGraphqlQuery(
+    suspend fun executeGraphqlOperation(
         query: String,
         variables: Map<String, Any>,
         server: HasuraServer
     ): String {
+        return executeGraphqlOperation(query, variables.toJsonObject(), server);
+    }
+
+    suspend fun executeGraphqlOperation(
+        query: String,
+        variables: String,
+        server: HasuraServer
+    ): String {
+        return executeGraphqlOperation(query, Json.decodeFromString<JsonObject>(variables), server);
+
+    }
+
+    suspend fun executeGraphqlOperation(
+        query: String,
+        variables: JsonObject,
+        server: HasuraServer
+    ): String {
         val graphqlJson = Json.encodeToString(buildJsonObject {
             put("query", query)
-            put("variables", variables.toJsonObject())
+            put("variables", variables)
         })
 
         return server.client.post {

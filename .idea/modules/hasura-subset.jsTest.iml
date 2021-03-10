@@ -74,5 +74,4 @@
     <orderEntry type="library" scope="TEST" name="Gradle: io.ktor:ktor-utils-js:1.5.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: io.ktor:ktor-io-js:1.5.1" level="project" />
   </component>
-  <component name="TestModuleProperties" production-module="hasura-subset.jsMain" />
 </module>
