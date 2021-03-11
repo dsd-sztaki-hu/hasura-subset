@@ -84,7 +84,7 @@ class HasuraSubset {
                             ?: throw HasuraSubsetException("No query operation type ${op.name} found in graphql schema")
 
                         val opTypeName = opInIntro.baseType.stringValue("name")
-                        val selection = op.selectionSet[0].selection ?: return@forEach
+                        val selection = it.selection ?: return@forEach
                         expandEverythingSelection(selection, opTypeName, alwaysIncludeTypeName, schemaDocument, true)
                     }
                     is SelectionFragmentSpread -> TODO()

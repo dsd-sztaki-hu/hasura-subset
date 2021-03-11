@@ -130,4 +130,54 @@ class HasuraSubsetTest {
 
         println("mutation result: $result")
     }
+
+    @Test
+    fun test_executeGraphqlQuery_with_mixed() = suspendTest {
+        val hasuraSubset = HasuraSubset()
+        val schemaFile = "$testResourceDir/mtmt2.graphql".uniVfs
+        val schema = schemaFile.readString()
+
+        val processedQuery = hasuraSubset.processGraphql(
+            mixedTypesInQuery,
+            schema,
+            true
+        )
+
+        var result = hasuraSubset.executeGraphqlOperation(
+            processedQuery,
+            "{}",
+            HasuraServer(
+                HttpClient(),
+                "http://localhost:8834/v1/graphql",
+                "mtmt2"
+            )
+        )
+        println(result.prettifiedJson)
+
+        val upsertRes = hasuraSubset.jsonToUpsert(
+            result,
+            {
+                HasuraSubset.OnConflict(
+                    "${it}_pkey",
+                    listOf("mtid")
+                )
+            }
+        )
+
+        println("upsertRes.graphql: "+upsertRes.mutation)
+        println("upsertRes.variables" + upsertRes.variables.prettifiedJson)
+
+        result = hasuraSubset.executeGraphqlOperation(
+            upsertRes.mutation,
+            upsertRes.variables,
+            HasuraServer(
+                HttpClient(),
+                "http://localhost:8835/v1/graphql",
+                "mtmt2"
+            )
+        )
+
+        println("mutation result: $result")
+    }
+
 }

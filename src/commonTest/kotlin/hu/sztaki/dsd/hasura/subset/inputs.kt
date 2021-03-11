@@ -2125,6 +2125,41 @@ val graphqlQueryExampleMtmtWithEverythingParameters = """
             }
             """.trimIndent()
 
+val mixedTypesInQuery = """
+query {
+    publication(mtid: 3156695) {
+        __everything
+        authorships {
+            __everything(except: [publicationMtid, authorMtid])
+            author {
+                __everything
+                authorNames {
+                    __everything(except: [authorMtid])
+                }
+            }
+        }
+    }
+
+    users(
+        where:{mtid: {_eq: 521}}
+    ) {
+        __everything
+        adminRoles {
+            __everything(except: [userMtid])
+            institute {
+                __everything
+                affiliations {
+                    __everything
+                    worksFor {
+                        __everything
+                    }
+                }
+            }
+        }
+    }
+}
+""".trimIndent()
+
 val tweetGraphql = """
     type Tweet {
         id: ID!
