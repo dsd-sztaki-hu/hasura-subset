@@ -1,14 +1,7 @@
 package com.kgbier.graphql.parser
 
+import com.kgbier.graphql.parser.structure.*
 import com.kgbier.graphql.parser.substring.Substring
-import com.kgbier.graphql.parser.structure.Tuple2
-import com.kgbier.graphql.parser.structure.Tuple3
-import com.kgbier.graphql.parser.structure.Tuple4
-import com.kgbier.graphql.parser.structure.Tuple5
-import com.kgbier.graphql.parser.structure.Tuple6
-import com.kgbier.graphql.parser.structure.Tuple7
-import com.kgbier.graphql.parser.structure.Tuple8
-import com.kgbier.graphql.parser.structure.Tuple9
 
 internal interface Parser<A> {
     fun run(str: Substring): A?
@@ -147,3 +140,20 @@ internal fun <A, B, C, D, E, F, G, H, I> zip(
         .map { (a, bcdefghi) ->
             Tuple9(a, bcdefghi.first, bcdefghi.second, bcdefghi.third, bcdefghi.fourth, bcdefghi.fifth, bcdefghi.sixth, bcdefghi.seventh, bcdefghi.eighth, hint)
         }
+
+internal fun <A, B, C, D, E, F, G, H, I, J> zip(
+    a: Parser<A>,
+    b: Parser<B>,
+    c: Parser<C>,
+    d: Parser<D>,
+    e: Parser<E>,
+    f: Parser<F>,
+    g: Parser<G>,
+    h: Parser<H>,
+    i: Parser<I>,
+    j: Parser<J>,
+    hint: String=""
+): Parser<Tuple10<A, B, C, D, E, F, G, H, I, J>> = zip(a, zip(b, c, d, e, f, g, h, i, j, hint), hint)
+    .map { (a, bcdefghij) ->
+        Tuple10(a, bcdefghij.first, bcdefghij.second, bcdefghij.third, bcdefghij.fourth, bcdefghij.fifth, bcdefghij.sixth, bcdefghij.seventh, bcdefghij.eighth, bcdefghij.ninth, hint)
+    }

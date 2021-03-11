@@ -89,6 +89,14 @@ internal class GraphQl {
         "requiredTokenSeparator: comment, lineTerminator, whiteSpace, comma"
     )).erase()
 
+    val commentOrWhitespace = zeroOrMore(oneOf(listOf(
+        comment,
+        lineTerminator,
+        whiteSpace),
+        "commentOrWhitespace: comment, lineTerminator, whiteSpace"
+    )).erase()
+
+
     /**
      * Values
      */
@@ -576,12 +584,17 @@ internal class GraphQl {
             "\"operationDefinition -> [ \\\" operationType name? variableDefinitions? directives? selectionSet selectionSet ]\""
     )
 
+
     // executableDefinition -> [ operationDefinition fragmentDefinition ]
+    // Added optional comment before the definition. The spec may not define it but Hasura supports it.
     val executableDefinition = oneOf(listOf(
-            operationDefinition.map { ExecutableDefinitionOperation(it) },
-            fragmentDefinition.map { ExecutableDefinitionFragment(it) }),
-            "executableDefinition -> [ operationDefinition fragmentDefinition ]"
-    )
+        zip(
+            commentOrWhitespace, operationDefinition
+        ).map { (_, op) -> ExecutableDefinitionOperation(op) },
+        zip(
+            commentOrWhitespace, fragmentDefinition
+        ).map { (_, op) -> ExecutableDefinitionFragment(op) }
+    ),"executableDefinition -> [ operationDefinition fragmentDefinition ]")
 
     // definition -> [ executableDefinition typeSystemDefinition TypeSystemExtension ]
     val definition = oneOf(listOf(

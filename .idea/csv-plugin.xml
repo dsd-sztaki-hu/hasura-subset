@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/src/commonMain/kotlin/com/kgbier/graphql/parser/GraphQl.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/src/commonMain/kotlin/com/kgbier/graphql/parser/Parser.kt">
           <value>
             <Attribute>

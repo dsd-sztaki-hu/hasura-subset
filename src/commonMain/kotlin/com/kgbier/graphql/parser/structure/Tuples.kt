@@ -75,3 +75,17 @@ data class Tuple9<out A, out B, out C, out D, out E, out F, out G, out H, out I>
         val ninth: I,
         val hint: String?=""
 )
+
+data class Tuple10<out A, out B, out C, out D, out E, out F, out G, out H, out I, out J>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D,
+        val fifth: E,
+        val sixth: F,
+        val seventh: G,
+        val eighth: H,
+        val ninth: I,
+        val tenth: J,
+        val hint: String?=""
+)

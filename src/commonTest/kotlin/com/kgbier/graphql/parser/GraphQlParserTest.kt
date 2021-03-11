@@ -46,6 +46,24 @@ internal class GraphQlParserTest {
     }
 
     @Test
+    fun commentsInFront() {
+        val query = """
+        # Comment at the beginning
+        # of operation
+        {
+          hero {
+            name
+            friends {
+              name
+            }
+          }
+        }
+        """
+        testQuery(query)
+    }
+
+
+    @Test
     fun commentsInline() {
         val query = """
         {
