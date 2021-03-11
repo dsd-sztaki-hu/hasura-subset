@@ -71,9 +71,6 @@ class HasuraSubset {
         queryAST.match.apply {
             // Get the operation from the query
             val op = queryOperations[0]
-            if (op.name == null) {
-                throw HasuraSubsetException("Query operation has no name")
-            }
 
             // Find top level selection and starting there recursively expand __everything in all subsequent
             // selection lists
@@ -88,7 +85,7 @@ class HasuraSubset {
 
                         val opTypeName = opInIntro.baseType.stringValue("name")
                         val selection = op.selectionSet[0].selection ?: return@forEach
-                        expandEverythingSelection(selection, opTypeName, alwaysIncludeTypeName, schemaDocument)
+                        expandEverythingSelection(selection, opTypeName, alwaysIncludeTypeName, schemaDocument, true)
                     }
                     is SelectionFragmentSpread -> TODO()
                     is SelectionInlineFragment -> TODO()
@@ -109,14 +106,15 @@ class HasuraSubset {
         typeName: String,
         alwaysIncludeUUTypeName: Boolean,
         schemaDocument: JsonObject,
-        recurse: Boolean = true)
+        recurse: Boolean = true
+    )
     {
         val opTypeDefinition = schemaDocument.getType(typeName)
         if (opTypeDefinition == null) {
             HasuraSubsetException("No type definition ${opTypeDefinition} found in graphql schema")
         }
 
-        // Do we have an __everything slection
+        // Do we have an __everything selection
         var everythingSelection = target.selectionSet.filter {
             when(it) {
                 is SelectionField -> {
@@ -132,7 +130,7 @@ class HasuraSubset {
         var scalarSelections = target.selectionSet.filter {
             if (it.selection is Field) {
                 val sel = it.selection as Field
-                // Note: keep any startign with __ except '__everything'
+                // Note: keep any starting with __ except '__everything'
                 sel.selectionSet.isEmpty() &&
                         (!sel.name.startsWith("__") || sel.name.toLowerCase().startsWith("__everything"))
             }
@@ -143,6 +141,23 @@ class HasuraSubset {
 
         // Expand __everything
         if (!everythingSelection.isEmpty()) {
+            // Handle "except" argument
+            var ignoreFields = mutableSetOf<String>()
+            if (!(everythingSelection[0] as SelectionField).selection.arguments.isEmpty()) {
+                (everythingSelection[0] as SelectionField).selection.arguments.forEach {
+                    if (it.name == "except") {
+                        (it.value as Value.ValueList).value.forEach {
+                            if (it is Value.ValueString) {
+                                ignoreFields.add(it.value)
+                            }
+                            else if (it is Value.ValueEnum) {
+                                ignoreFields.add(it.value)
+                            }
+                        }
+                    }
+                }
+            }
+
             val remaining = mutableListOf<Selection>()
             remaining.addAll(target.selectionSet)
 
@@ -152,9 +167,13 @@ class HasuraSubset {
             }
 
             val finalList = mutableListOf<Selection>()
-            opTypeDefinition!!.scalarFieldNames.map {name ->
-                finalList.add(SelectionField(Field(null, name, emptyList(), emptyList(), emptyList())))
-            }
+            opTypeDefinition!!.scalarFieldNames
+                .filter {
+                    !ignoreFields.contains(it)
+                }
+                .forEach {name ->
+                    finalList.add(SelectionField(Field(null, name, emptyList(), emptyList(), emptyList())))
+                }
             finalList.addAll(remaining)
             if (alwaysIncludeUUTypeName) {
                 val uutypeName = finalList.find {
@@ -179,7 +198,7 @@ class HasuraSubset {
                     val field = it.selection as Field
                     if (!field.selectionSet.isEmpty()) {
                         val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
-                        expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeUUTypeName, schemaDocument)
+                        expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeUUTypeName, schemaDocument, recurse)
                     }
                 }
             }

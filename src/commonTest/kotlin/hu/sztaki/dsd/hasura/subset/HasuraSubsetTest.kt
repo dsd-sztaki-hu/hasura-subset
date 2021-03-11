@@ -70,6 +70,16 @@ class HasuraSubsetTest {
         }
         // Must be much faster, because graphql schema is not reparsed
         println("timedResult2: "+timedResult)
+
+        var result = hasuraSubset.processGraphql(
+            graphqlQueryExampleMtmtWithEverythingParameters,
+            schema,
+            true
+        )
+        println("test_processGraphql_big_schema input:\n$graphqlQueryExampleMtmtWithEverythingParameters")
+        println("test_processGraphql_big_schema result:\n$result")
+        assertEquals(graphqlQueryExampleMtmtExpandedWithUUTypenameFiltered, result)
+
     }
 
     @Test
@@ -78,7 +88,11 @@ class HasuraSubsetTest {
         val schemaFile = "$testResourceDir/mtmt2.graphql".uniVfs
         val schema = schemaFile.readString()
 
-        val processedQuery = hasuraSubset.processGraphql(graphqlQueryExampleMtmt, schema, true)
+        val processedQuery = hasuraSubset.processGraphql(
+            graphqlQueryExampleMtmt,
+            schema,
+            true
+        )
 
         var result = hasuraSubset.executeGraphqlOperation(
             processedQuery,
