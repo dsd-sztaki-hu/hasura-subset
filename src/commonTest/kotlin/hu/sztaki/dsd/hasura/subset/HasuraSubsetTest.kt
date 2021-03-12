@@ -34,7 +34,7 @@ class HasuraSubsetTest {
     }
 
     @Test
-    fun test_processGraphql() {
+    fun test_processGraphql() = suspendTest {
         val hasuraSubset = HasuraSubset()
         var result = hasuraSubset.processGraphql(tweetQuery, tweetGraphql)
         println("test_processGraphql 1: $result")
@@ -178,6 +178,70 @@ class HasuraSubsetTest {
         )
 
         println("mutation result: $result")
+    }
+
+    @Test
+    fun test_removeNullValues()
+    {
+        val json1 = """
+            {
+                "name": "John",
+                "country": "null",
+                "address": "null",
+                "phoneNumbers": [
+                    "123456",
+                    "78910",
+                    "null",
+                    "123456",
+                    "null",
+                    "null"
+                ],
+                "friends": [
+                    {
+                        "age": "null",
+                        "name": "Susan",
+                        "country": "null",
+                        "address": "Susan's address",   
+                        "phoneNumbers": [
+                            "null",
+                            "11111",
+                            "22222",
+                            "null"
+                        ]
+                    },
+                    {
+                        "name": "George",
+                        "country": "Germany",
+                        "address": "null",
+                        "phoneNumbers": []
+                    }
+                ],
+                "age": 30,
+                "email": "null"
+            }
+        """.trimIndent()
+
+        val result1 = """
+            {"name":"John","phoneNumbers":["123456","78910","123456"],"friends":[{"name":"Susan","address":"Susan's address","phoneNumbers":["11111","22222"]},{"name":"George","country":"Germany"}],"age":30}
+        """.trimIndent()
+
+        val json2 = json1.withoutJsonNullAndEmptyValues
+        println(json2)
+        assertEquals(result1, json2)
+    }
+
+    @Test
+    fun test_processGraphql_uuInclude() = suspendTest {
+        val hasuraSubset = HasuraSubset()
+        println("test_processGraphql_uuInclude input query: $tweetQueryWithUuInclude")
+        val result = hasuraSubset.processGraphql(
+            tweetQueryWithUuInclude,
+            tweetGraphql,
+            false,
+            testResourceDir)
+        println("test_processGraphql_uuInclude result: $result")
+        assertEquals(tweetQueryExpaned, result)
+
     }
 
 }

@@ -1,0 +1,6 @@
+{
+    __everyhting(except: [someId])
+    otherThing {
+        __everyhting
+    }
+}

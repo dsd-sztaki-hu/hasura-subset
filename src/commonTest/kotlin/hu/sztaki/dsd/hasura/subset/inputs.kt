@@ -2243,7 +2243,6 @@ val tweetQuery = """
                 }
             }
        }
-
     }
 """.trimIndent()
 
@@ -2301,3 +2300,17 @@ val tweetQueryExpanedAlwaysIncludeTypeName = """query testTweetQuery(${"$"}sort_
   }
 }
 """
+
+val tweetQueryWithUuInclude = """
+    # Comment
+    query testTweetQuery(${"$"}sort_field: String) {
+       Tweets(limit: 10, sort_field: ${"$"}sort_field) {
+            id
+            body
+            date
+            __typename
+            __include(files: ["include-tweet-author.graphql"])
+       }
+
+    }
+""".trimIndent()

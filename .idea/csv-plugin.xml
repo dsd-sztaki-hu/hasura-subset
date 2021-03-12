@@ -59,6 +59,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/src/commonMain/kotlin/hu/sztaki/dsd/hasura/subset/JsonExtensions.kt">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/src/commonTest/kotlin/hu/sztaki/dsd/hasura/subset/AstExtenstionTest.kt">
           <value>
             <Attribute>

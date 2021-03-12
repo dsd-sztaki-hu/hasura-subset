@@ -3,12 +3,20 @@ package hu.sztaki.dsd.hasura.subset
 import com.kgbier.graphql.parser.GraphQLParser
 import com.kgbier.graphql.parser.structure.*
 import com.kgbier.graphql.printer.GraphQLPrinter
+import com.soywiz.korio.async.async
+import com.soywiz.korio.async.asyncImmediately
+import com.soywiz.korio.async.launch
+import com.soywiz.korio.file.std.uniVfs
 import com.soywiz.krypto.MD5
-import io.ktor.client.*
 import io.ktor.client.request.*
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.serialization.*
 import kotlinx.serialization.json.*
+import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.encoding.*
+import kotlinx.serialization.encoding.Encoder
+
 
 expect fun graphqlSchemaToJsonSchema(schema: String): String
 
@@ -49,10 +57,11 @@ class HasuraSubset {
      *
      * - ...everything: expands all simple fields of object
      */
-    fun processGraphql(
+     suspend fun processGraphql(
         graphqlQuery: String,
         graphqlSchema: String,
-        alwaysIncludeTypeName: Boolean = false
+        alwaysIncludeTypeName: Boolean = false,
+        includeRoot: String? = null
     ) : String
     {
         // Try to reuse cached version
@@ -84,8 +93,7 @@ class HasuraSubset {
                             ?: throw HasuraSubsetException("No query operation type ${op.name} found in graphql schema")
 
                         val opTypeName = opInIntro.baseType.stringValue("name")
-                        val selection = it.selection ?: return@forEach
-                        expandEverythingSelection(selection, opTypeName, alwaysIncludeTypeName, schemaDocument, true)
+                        expandEverythingSelection(it.selection, opTypeName, alwaysIncludeTypeName, schemaDocument, true, includeRoot)
                     }
                     is SelectionFragmentSpread -> TODO()
                     is SelectionInlineFragment -> TODO()
@@ -101,14 +109,17 @@ class HasuraSubset {
      * and so we don't have to always handpick fields. This is also comes handy when schema changes as we don't have
      * to update when a simple field changes.
      */
-    fun expandEverythingSelection(
+    suspend fun expandEverythingSelection(
         target: WithSelectionSet,
         typeName: String,
         alwaysIncludeUUTypeName: Boolean,
         schemaDocument: JsonObject,
-        recurse: Boolean = true
+        recurse: Boolean = true,
+        includeRoot: String? = null
     )
     {
+        processIncludes(target, includeRoot)
+
         val opTypeDefinition = schemaDocument.getType(typeName)
         if (opTypeDefinition == null) {
             HasuraSubsetException("No type definition ${opTypeDefinition} found in graphql schema")
@@ -198,12 +209,89 @@ class HasuraSubset {
                     val field = it.selection as Field
                     if (!field.selectionSet.isEmpty()) {
                         val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
-                        expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeUUTypeName, schemaDocument, recurse)
+                        expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeUUTypeName, schemaDocument, recurse, includeRoot)
                     }
                 }
             }
         }
     }
+
+    suspend private fun processIncludes(
+        target: WithSelectionSet,
+        includeRoot: String? = null
+    )
+    {
+        //
+        // Collect __include
+        //
+        var includes = target.selectionSet.filter {
+            when(it) {
+                is SelectionField -> {
+                    it.selection.name.toLowerCase() == "__include"
+                }
+                is SelectionFragmentSpread -> TODO()
+                is SelectionInlineFragment -> TODO()
+            }
+        }
+
+        //
+        // Process includes
+        //
+        includes.forEach { sel ->
+            if (!(sel as SelectionField).selection.arguments.isEmpty()) {
+                (sel as SelectionField).selection.arguments.forEach { arg ->
+                    if (arg.name == "files") {
+                        if (!(arg.value is Value.ValueList)) {
+                            throw HasuraSubsetException("__include(files: ...) must have an array argument")
+                        }
+
+                        (arg.value as Value.ValueList).value.forEach { argValue ->
+                            if (!(argValue is Value.ValueString)) {
+                                throw HasuraSubsetException("__include value is not a string: $argValue")
+                            }
+                            var path = argValue.value
+                            if (!path.startsWith("/")) {
+                                path = if(includeRoot != null) includeRoot+"/"+path else path
+                            }
+                            val incFile = path.uniVfs
+                            val incContent = incFile.readString()
+                            //println("incContent $incContent")
+                            val parseRes = GraphQLParser.parseWithResult(incContent)
+                            if (parseRes.match == null) {
+                                throw HasuraSubsetException("Unable to parse included file as $path. Error at: ${parseRes.rest.state.row}:${parseRes.rest.state.col}")
+                            }
+                            mergeIncluded(target, parseRes.match)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Merge into a target query the selection set of the included.
+     */
+    private fun mergeIncluded(
+        target: WithSelectionSet,
+        included: Document
+    )
+    {
+        val merged = mutableListOf<Selection>()
+
+        // Add all to final result except __include fields
+        merged.addAll(target.selectionSet.filter {
+            !(it is SelectionField && it.selection.name == "__include")
+        })
+
+        included.definitions.forEach {
+            val op = ((it as DefinitionExecutable).definition as ExecutableDefinitionOperation).definition as OperationDefinitionSelectionSet
+            merged.addAll(op.selectionSet)
+        }
+
+        target.selectionSet = merged
+    }
+
+
 
     /**
      * Executes a graphql query  on a given server.
@@ -252,12 +340,18 @@ class HasuraSubset {
     fun jsonToUpsert(
         queryResultJson: String,
         onConflict: (typeName: String) -> OnConflict,
-        insertName: ((typeName: String) -> String)? = null
+        insertName: ((typeName: String) -> String)? = null,
+        ignoreNullsAndEmpty: Boolean = false
     ) : UpsertResult
     {
-        val json = Json.parseToJsonElement(queryResultJson)
+        val cleanJson = if (ignoreNullsAndEmpty) queryResultJson.withoutJsonNullAndEmptyValues else queryResultJson
+        var json = Json {
+            encodeDefaults = false
+            coerceInputValues
+        }.parseToJsonElement(cleanJson)
 
-        val root = if (json is JsonObject) json else throw HasuraSubsetException("json in not an object")
+        //json.jsonObject.
+        json = if (json is JsonObject) json else throw HasuraSubsetException("json in not an object")
         val data = json["data"] as JsonObject? ?: throw HasuraSubsetException("key 'data' is not found in root")
 
         var upsertVariables = mutableMapOf<String, JsonElement>()
@@ -310,7 +404,8 @@ class HasuraSubset {
         upsertGraphql.append(upsertGraphqlOperations);
         upsertGraphql.append("}\n")
 
-        return UpsertResult(upsertGraphql.toString(), Json.encodeToString(upsertVariables))
+        var variablesJson = Json.encodeToString(upsertVariables)
+        return UpsertResult(upsertGraphql.toString(), variablesJson)
     }
 
     data class DataAndConflict(
@@ -389,66 +484,3 @@ val Selection.selection: WithSelectionSet?
     }
 
 class HasuraSubsetException(message: String, cause: Throwable? = null) : Exception(message, cause)
-
-//fun String.buildJsonObject(other: Map<String, Any?>) : JsonElement {
-//    val jsonEncoder = Json{ encodeDefaults = true } // Set this accordingly to your needs
-//    val map = emptyMap<String, JsonElement>().toMutableMap()
-//
-//    other.forEach {
-//        map[it.key] = if (it.value != null)
-//            jsonEncoder.encodeToJsonElement(serializer(it.value!!::class.starProjectedType), it.value)
-//        else JsonNull
-//    }
-//
-//    return JsonObject(map)
-//}
-
-private val graphqlSchemaExample = """
-            "A ToDo Object"
-            type Todo {
-                "A unique identifier"
-                id: String!
-                name: String!
-                completed: Boolean
-                color: Color
-                "A required list containing colors that cannot contain nulls"
-                requiredColors: [Color!]!
-                "A non-required list containing colors that cannot contain nulls"
-                optionalColors: [Color!]
-                fieldWithOptionalArgument(
-                  optionalFilter: [String!]
-                ): [String!]
-                fieldWithRequiredArgument(
-                  requiredFilter: [String!]!
-                ): [String!]
-            }
-            ""${'"'}
-            A type that describes ToDoInputType. Its description might not
-            fit within the bounds of 80 width and so you want MULTILINE
-            ""${'"'}
-            input TodoInputType {
-                name: String!
-                completed: Boolean
-                color: Color=RED
-            }
-            enum Color {
-              "Red color"
-              RED
-              "Green color"
-              GREEN
-            }
-            type Query {
-                todo(
-                    "todo identifier"
-                    id: String!
-                    isCompleted: Boolean=false
-                    requiredStatuses: [String!]!
-                    optionalStatuses: [String!]
-                ): Todo!
-                todos: [Todo!]!
-            }
-            type Mutation {
-                update_todo(id: String!, todo: TodoInputType!): Todo
-                create_todo(todo: TodoInputType!): Todo
-            }
-        """.trimIndent()
