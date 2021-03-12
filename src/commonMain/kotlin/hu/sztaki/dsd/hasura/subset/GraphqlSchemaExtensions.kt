@@ -69,6 +69,13 @@ fun JsonObject.getField(name: String): JsonObject? {
     } as JsonObject?
 }
 
+fun JsonObject.getInputField(name: String): JsonObject? {
+    return (this["inputFields"] as JsonArray).find {
+        (it as JsonObject).stringValue("name") == name
+    } as JsonObject?
+}
+
+
 /**
  * Type of a field of a graphql object type
  */
@@ -117,6 +124,52 @@ val JsonObject.scalarFieldNames: List<String>
                 (it as JsonObject).stringValue("name")
             }
     }
+
+/**
+ * Returns base type of an argument
+ */
+fun JsonObject.baseTypeOfArg(name: String): JsonObject? {
+    val args = this["args"]
+    if (args == null) {
+        return null
+    }
+    return (args as JsonArray).find { arg ->
+        arg.jsonObject["name"]!!.jsonPrimitive.content == name
+    }!!.jsonObject.baseType
+}
+
+
+fun JsonObject.graphqlTypeOfArg(name: String): String? {
+    val args = this["args"]
+    if (args == null) {
+        return null
+    }
+    return (args as JsonArray).find { arg ->
+        arg.jsonObject["name"]!!.jsonPrimitive.content == name
+    }!!.jsonObject["type"]!!.jsonObject.graphqlType
+}
+
+val JsonObject.graphqlType: String
+    get() {
+        var res = ""
+        var kind = this["kind"]!!.jsonPrimitive.content
+        when(kind) {
+            "NON_NULL" ->
+                res = this.hasOfType.let {
+                    this["ofType"]!!.jsonObject.graphqlType
+                }+"!"
+            "LIST" ->
+                res = "[" + this.hasOfType.let {
+                    this["ofType"]!!.jsonObject.graphqlType
+                }+ "]"
+            else ->
+                res = this["name"]!!.jsonPrimitive.content
+        }
+        return res
+    }
+
+
+
 
 /**
  * For any object that has a "type" get the base type. The base type is the root

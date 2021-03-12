@@ -2314,3 +2314,30 @@ val tweetQueryWithUuInclude = """
 
     }
 """.trimIndent()
+
+
+val graphqlQueryExampleWithRatings = """
+            query exampleQuery(${"$"}param: bigint!){
+              publication(mtid:${"$"}param) {
+                __everything            
+                authorships {
+                  __everything            
+                  author {
+                    __everything            
+                    authorNames {
+                      __everything            
+                    }
+                  }
+                }
+                ratings {
+                    __everything(except: [publicationMtid, ratingsMtid])
+                    rating {
+                        __everything(except: [periodicalMtid, ratingTypeMtid])
+                        ratingType {
+                            __everything
+                        }
+                    }
+                }
+              }
+            }
+            """.trimIndent()

@@ -3,19 +3,11 @@ package hu.sztaki.dsd.hasura.subset
 import com.kgbier.graphql.parser.GraphQLParser
 import com.kgbier.graphql.parser.structure.*
 import com.kgbier.graphql.printer.GraphQLPrinter
-import com.soywiz.korio.async.async
-import com.soywiz.korio.async.asyncImmediately
-import com.soywiz.korio.async.launch
 import com.soywiz.korio.file.std.uniVfs
 import com.soywiz.krypto.MD5
 import io.ktor.client.request.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
-import kotlinx.serialization.descriptors.*
-import kotlinx.serialization.encoding.*
-import kotlinx.serialization.encoding.Encoder
 
 
 expect fun graphqlSchemaToJsonSchema(schema: String): String
@@ -53,6 +45,20 @@ class HasuraSubset {
     val cachedSchemas = mutableMapOf<String, JsonObject>()
 
     /**
+     * Converts `graphqlSchema` to a JsonObject. The schema is cached so next invocation of
+     * schemaAsJson with the same `graphqlSchema` will use the cached version.s
+     */
+    private fun schemaAsJson(graphqlSchema: String): JsonObject
+    {
+        val hash = MD5.digest(graphqlSchema.encodeToByteArray()).hex
+        var schemaDocument = cachedSchemas[hash] ?: Json.decodeFromString(graphqlSchemaToIntrospectedSchema(graphqlSchema))
+        if (cachedSchemas[hash] == null) {
+            cachedSchemas.put(hash, schemaDocument)
+        }
+        return schemaDocument
+    }
+
+    /**
      * Process graphql query by extending hasura-subset macros.
      *
      * - ...everything: expands all simple fields of object
@@ -64,12 +70,7 @@ class HasuraSubset {
         includeRoot: String? = null
     ) : String
     {
-        // Try to reuse cached version
-        val hash = MD5.digest(graphqlSchema.encodeToByteArray()).hex
-        var schemaDocument = cachedSchemas[hash] ?: Json.decodeFromString(graphqlSchemaToIntrospectedSchema(graphqlSchema))
-        if (cachedSchemas[hash] == null) {
-            cachedSchemas.put(hash, schemaDocument)
-        }
+        var schemaDocument = schemaAsJson(graphqlSchema)
 
         val queryAST = GraphQLParser.parseWithResult(graphqlQuery)
         if (queryAST.match == null) {
@@ -339,18 +340,19 @@ class HasuraSubset {
     @Throws(HasuraSubsetException::class)
     fun jsonToUpsert(
         queryResultJson: String,
+        graphqlSchema: String,
         onConflict: (typeName: String) -> OnConflict,
         insertName: ((typeName: String) -> String)? = null,
-        ignoreNullsAndEmpty: Boolean = false
+        ignoreNullsAndEmpty: Boolean = true
     ) : UpsertResult
     {
+        val schemaDocument = schemaAsJson(graphqlSchema)
         val cleanJson = if (ignoreNullsAndEmpty) queryResultJson.withoutJsonNullAndEmptyValues else queryResultJson
         var json = Json {
             encodeDefaults = false
             coerceInputValues
         }.parseToJsonElement(cleanJson)
 
-        //json.jsonObject.
         json = if (json is JsonObject) json else throw HasuraSubsetException("json in not an object")
         val data = json["data"] as JsonObject? ?: throw HasuraSubsetException("key 'data' is not found in root")
 
@@ -363,21 +365,53 @@ class HasuraSubset {
         // Handle top level
         data.keys.forEach {key ->
             val value = data[key]
+
+            // Calculate top level types
+            val topType = when(value) {
+                is JsonArray -> {
+                    value[0].jsonObject["__typename"]!!.jsonPrimitive.content
+                }
+                is JsonObject -> {
+                    value["__typename"]!!.jsonPrimitive.content
+                }
+                is JsonNull -> throw HasuraSubsetException("Null value not expected here: $value")
+                is JsonPrimitive -> throw HasuraSubsetException("Primitive value not expected here: $value")
+                else -> throw HasuraSubsetException("Null value not expected here: $value")
+            }
+            // Either use the name provided by the insertName() function or generate the default hasura insert name
+            // derived from the type name
+            val insert = if (insertName != null) insertName(topType) else "insert_$topType"
+            val insertType = schemaDocument.getType("mutation_root")!!.getField(insert)
+            if (insertType == null) {
+                throw HasuraSubsetException("Mutation '$insert' not found in mutation_rooot")
+            }
+            val objectsType = insertType.graphqlTypeOfArg("objects")
+                ?: throw HasuraSubsetException("No argument 'objects' found for mutation '$insert'")
+            val onConflictType = insertType.graphqlTypeOfArg("on_conflict")
+                ?: throw HasuraSubsetException("No argument 'on_conflict' found for mutation '$insert'")
+
+            val insertInputTypeName = insertType.baseTypeOfArg("objects")!!["name"]!!.jsonPrimitive.content
+
+            // Calculate data and optional conflict values recursively
             var dataAndConflict: DataAndConflict? = null
             when(value) {
                 is JsonArray -> {
                     val list = mutableListOf<JsonObject>()
                     for (jsonElement in value) {
-                        dataAndConflict = converToUpsert(jsonElement as JsonObject, onConflict)
+                        dataAndConflict = convertToUpsert(jsonElement as JsonObject, insertInputTypeName, schemaDocument, onConflict)
                         list.add(dataAndConflict.data as JsonObject)
                     }
                     upsertVariables["objects_$key"] = JsonArray(list)
-                    upsertVariables["on_conflict_$key"] = dataAndConflict!!.conflict
+                    dataAndConflict!!.conflict?.let {
+                        upsertVariables["on_conflict_$key"] = dataAndConflict!!.conflict!!
+                    }
                 }
                 is JsonObject -> {
-                    dataAndConflict = converToUpsert(value, onConflict)
+                    dataAndConflict = convertToUpsert(value, insertInputTypeName, schemaDocument, onConflict)
                     upsertVariables["objects_$key"] = dataAndConflict.data
-                    upsertVariables["on_conflict_$key"] = dataAndConflict.conflict
+                    dataAndConflict.conflict?.let {
+                        upsertVariables["on_conflict_$key"] = dataAndConflict.conflict!!
+                    }
                 }
                 is JsonNull -> throw HasuraSubsetException("Null value not expected here: $value")
                 is JsonPrimitive -> throw HasuraSubsetException("Primitive value not expected here: $value")
@@ -388,10 +422,9 @@ class HasuraSubset {
                 needsComma = false
             }
 
-            // Either use the name provided by the insertName() function or generate the default hasura insert name
-            // derived from the type name
-            val insert = if (insertName != null) insertName(dataAndConflict!!.type) else "insert_${dataAndConflict!!.type}"
-            upsertGraphql.append("\$objects_$key: [${dataAndConflict.type}_insert_input!]!, \$on_conflict_$key: ${dataAndConflict.type}_on_conflict")
+
+            // Assemble mutation
+            upsertGraphql.append("\$objects_$key: $objectsType, \$on_conflict_$key: $onConflictType")
             upsertGraphqlOperations.append("""
                 ${key}: $insert(objects: ${"$"}objects_$key, on_conflict: ${"$"}on_conflict_$key) {
                     affected_rows
@@ -410,11 +443,19 @@ class HasuraSubset {
 
     data class DataAndConflict(
         val data: JsonElement,
-        val conflict: JsonObject,
-        val type: String
+        val conflict: JsonObject?,
     )
 
-    private fun converToUpsert(jsonObj: JsonObject, onConflict: (typeName: String) -> OnConflict): DataAndConflict
+    /**
+     * Converts the jsonObj, which is the result of a query to an upsert data value and an optional
+     * on_conflict.
+     */
+    private fun convertToUpsert(
+        jsonObj: JsonObject,
+        insertInputTypeName: String,
+        schemaDocument: JsonObject,
+        onConflict: (typeName: String) -> OnConflict,
+    ): DataAndConflict
     {
         fun createConflict(typeName: String): JsonObject
         {
@@ -426,24 +467,40 @@ class HasuraSubset {
             return conflict
         }
 
-        fun createDataAndOnConflict(value: JsonElement) : DataAndConflict
+        fun createDataAndOnConflict(value: JsonElement, inputField: JsonObject) : DataAndConflict
         {
+            val inputFieldTypeName = inputField.baseType["name"]!!.jsonPrimitive.content
+            val inputFieldType = schemaDocument.getType(inputFieldTypeName)!!.jsonObject
+
+            // Type of the item(s) in the data.
+            val dataInputField = inputFieldType.getInputField("data")!!
+            val dataInputFieldTypeName = dataInputField.baseType["name"]!!.jsonPrimitive.content
+
+            // Does this inputField has on_conflict? many-to-many arr_rel_insert_inputs don't have it
+            // so we won't generate one for those
+            val onConflictInputField = inputFieldType.getInputField("on_conflict")
+
             var data : JsonElement
             var typeInValue = ""
             when(value) {
                 is JsonObject -> {
                     typeInValue = (value["__typename"] as JsonPrimitive).content
-                    data = converToUpsert(value, onConflict).data
+                    data = convertToUpsert(value, dataInputFieldTypeName, schemaDocument, onConflict).data
                 }
                 is JsonArray ->
                     data = JsonArray(value.map {
                         typeInValue = ((it as JsonObject)["__typename"] as JsonPrimitive).content
-                        converToUpsert(it, onConflict).data
+                        convertToUpsert(it, dataInputFieldTypeName, schemaDocument, onConflict).data
                     })
                 else -> throw HasuraSubsetException("Invalid value: $value")
             }
-            return DataAndConflict(data, createConflict(typeInValue), typeInValue)
+
+            return DataAndConflict(
+                data,
+                if (onConflictInputField != null) createConflict(typeInValue) else null)
         }
+
+        val insertInputType = schemaDocument.getType(insertInputTypeName)
 
         val upsert = mutableMapOf<String, JsonElement>()
         jsonObj.forEach { entry ->
@@ -453,18 +510,21 @@ class HasuraSubset {
                 // convert to  {data:{...}, on_conflict:{...}}
                 // or {data:[...], on_conflict:{...}}
                 else -> {
-                    val dataAndConflict = createDataAndOnConflict(entry.value)
-                    upsert[entry.key] = JsonObject(mapOf(
-                        "data" to dataAndConflict.data,
-                        "on_conflict" to dataAndConflict.conflict
-                    ))
+                    val inputField = insertInputType!!.jsonObject.getInputField(entry.key)!!
+                    val dataAndConflict = createDataAndOnConflict(entry.value, inputField)
+                    upsert[entry.key] = buildJsonObject {
+                        put("data", dataAndConflict.data)
+                        dataAndConflict.conflict?.let {
+                            put("on_conflict", dataAndConflict.conflict)
+                        }
+                    }
                 }
             }
         }
 
         val type = (jsonObj["__typename"] as JsonPrimitive).content
 
-        return DataAndConflict(JsonObject(upsert), createConflict(type), type)
+        return DataAndConflict(JsonObject(upsert), createConflict(type))
     }
 
     fun copy(graphql: String, fromServer: HasuraServer, toServer: HasuraServer): CopyResult
