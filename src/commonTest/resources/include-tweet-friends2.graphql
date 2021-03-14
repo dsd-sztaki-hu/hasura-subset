@@ -1,0 +1,6 @@
+{
+    __EVERYTHING
+    friends {
+        __include(file: "include-tweet-friends2.graphql", recurse: 2)
+    }
+}

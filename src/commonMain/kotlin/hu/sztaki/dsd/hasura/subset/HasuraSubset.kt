@@ -42,6 +42,21 @@ class HasuraSubset {
         val columns: List<String>
     )
 
+    private data class Include(
+        var file: String,
+        var recurse: Int = 1
+    )
+
+    private data class DirectiveProcessingState(
+        val target: WithSelectionSet,
+        val typeName: String,
+        val alwaysIncludeUUTypeName: Boolean,
+        val schemaDocument: JsonObject,
+        val recurse: Boolean = true,
+        val includeRoot: String? = null,
+        val includeStack: MutableList<Include> = mutableListOf()
+    )
+
     val cachedSchemas = mutableMapOf<String, JsonObject>()
 
     /**
@@ -94,7 +109,7 @@ class HasuraSubset {
                             ?: throw HasuraSubsetException("No query operation type ${op.name} found in graphql schema")
 
                         val opTypeName = opInIntro.baseType.stringValue("name")
-                        expandEverythingSelection(it.selection, opTypeName, alwaysIncludeTypeName, schemaDocument, true, includeRoot)
+                        processSubsetDirectives(DirectiveProcessingState(it.selection, opTypeName, alwaysIncludeTypeName, schemaDocument, true, includeRoot))
                     }
                     is SelectionFragmentSpread -> TODO()
                     is SelectionInlineFragment -> TODO()
@@ -110,16 +125,20 @@ class HasuraSubset {
      * and so we don't have to always handpick fields. This is also comes handy when schema changes as we don't have
      * to update when a simple field changes.
      */
-    suspend fun expandEverythingSelection(
-        target: WithSelectionSet,
-        typeName: String,
-        alwaysIncludeUUTypeName: Boolean,
-        schemaDocument: JsonObject,
-        recurse: Boolean = true,
-        includeRoot: String? = null
+    suspend private fun processSubsetDirectives(
+        state: DirectiveProcessingState,
     )
     {
-        processIncludes(target, includeRoot)
+        var(target,
+            typeName,
+            alwaysIncludeUUTypeName,
+            schemaDocument,
+            recurse,
+            includeRoot,
+            includeStack
+        ) = state
+
+        processIncludes(state)
 
         val opTypeDefinition = schemaDocument.getType(typeName)
         if (opTypeDefinition == null) {
@@ -210,7 +229,7 @@ class HasuraSubset {
                     val field = it.selection as Field
                     if (!field.selectionSet.isEmpty()) {
                         val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
-                        expandEverythingSelection(field, fieldTypeName!!, alwaysIncludeUUTypeName, schemaDocument, recurse, includeRoot)
+                        processSubsetDirectives(state.copy(target = field, typeName = fieldTypeName!!))
                     }
                 }
             }
@@ -218,10 +237,12 @@ class HasuraSubset {
     }
 
     suspend private fun processIncludes(
-        target: WithSelectionSet,
-        includeRoot: String? = null
+        state: DirectiveProcessingState
     )
     {
+        val target = state.target
+        val includeRoot = state.includeRoot
+
         //
         // Collect __include
         //

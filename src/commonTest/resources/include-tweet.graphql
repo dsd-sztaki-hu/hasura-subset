@@ -1,0 +1,12 @@
+{
+    __everything
+    Author {
+        __everything
+        friends {
+            __include(file: "include-tweet-friends2.graphql")
+        }
+    }
+    ReplyTo {
+        __include(file: "include-tweet.graphql", recurse: 3)
+    }
+}

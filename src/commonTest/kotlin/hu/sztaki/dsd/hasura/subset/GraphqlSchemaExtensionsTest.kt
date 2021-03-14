@@ -40,7 +40,7 @@ class GraphqlSchemaExtensionsTest {
         val type = introspection.getType("Tweet")
         val fieldNames = type!!.fieldNames
         assertNotNull(fieldNames)
-        assertEquals(arrayListOf("id", "body", "date", "Author", "Stats"), fieldNames)
+        assertEquals(arrayListOf("id", "body", "date", "Author", "Editor", "Stats", "ReplyTo"), fieldNames)
     }
 
     @Test

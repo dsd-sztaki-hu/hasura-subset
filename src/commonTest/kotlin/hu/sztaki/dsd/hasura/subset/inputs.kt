@@ -2160,6 +2160,15 @@ query {
 }
 """.trimIndent()
 
+val tweetRecursiveQuery = """
+    query {
+        __everything(except: [Stats])
+        Author {
+            __include(file: "include-tweet-author2.graphql")
+        }
+    }
+""".trimIndent()
+
 val tweetGraphql = """
     type Tweet {
         id: ID!
@@ -2169,8 +2178,11 @@ val tweetGraphql = """
         date: Date
         # Who published the tweet
         Author: User
+        # Who edited the tweet
+        Editor: User        
         # Views, retweets, likes, etc
         Stats: Stat
+        ReplyTo: [Tweet]
     }
 
     type User {
