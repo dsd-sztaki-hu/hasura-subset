@@ -2194,6 +2194,7 @@ val tweetGraphql = """
         name: String @deprecated
         avatar_url: Url
         friends: [User]
+        tweets: [Tweet]
     }
 
     type Stat {
@@ -2353,3 +2354,13 @@ val graphqlQueryExampleWithRatings = """
               }
             }
             """.trimIndent()
+
+
+val tweetQueryWithUuIncludeRecursive = """
+    # Comment
+    query testTweetQuery(${"$"}sort_field: String) {
+       Tweets(limit: 10, sort_field: ${"$"}sort_field) {
+            __include(file: "include-tweet.graphql")
+       }
+    }
+""".trimIndent()

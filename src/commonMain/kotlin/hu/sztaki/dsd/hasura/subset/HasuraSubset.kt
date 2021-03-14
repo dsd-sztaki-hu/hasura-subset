@@ -43,18 +43,25 @@ class HasuraSubset {
     )
 
     private data class Include(
-        var file: String,
-        var recurse: Int = 1
+        val file: String,
+        val recurse: Int = 1,
+        var recursed: Int = 0
     )
 
-    private data class DirectiveProcessingState(
-        val target: WithSelectionSet,
+    private data class TargetField(
+        val field: WithSelectionSet,
         val typeName: String,
+    )
+
+
+    private data class DirectiveProcessingState(
+        val target: TargetField,
         val alwaysIncludeUUTypeName: Boolean,
         val schemaDocument: JsonObject,
         val recurse: Boolean = true,
         val includeRoot: String? = null,
-        val includeStack: MutableList<Include> = mutableListOf()
+        val includeStack: MutableList<Include> = mutableListOf(),
+        val fieldStack: MutableList<TargetField> = mutableListOf()
     )
 
     val cachedSchemas = mutableMapOf<String, JsonObject>()
@@ -104,12 +111,24 @@ class HasuraSubset {
                     is SelectionField -> {
                         val queryOp = it.selection.name
 
+                        // Ignore __everything, __typename, etc.
+//                        if (queryOp.startsWith("__") && !queryOp.startsWith("__include")) {
+//                            return@forEach
+//                        }
+
                         // Find operation type in schema
                         val opInIntro = schemaDocument.findQueryOperation(queryOp)
                             ?: throw HasuraSubsetException("No query operation type ${op.name} found in graphql schema")
 
                         val opTypeName = opInIntro.baseType.stringValue("name")
-                        processSubsetDirectives(DirectiveProcessingState(it.selection, opTypeName, alwaysIncludeTypeName, schemaDocument, true, includeRoot))
+                        val initialState = DirectiveProcessingState(TargetField(it.selection, opTypeName), alwaysIncludeTypeName, schemaDocument, true, includeRoot)
+                        // First resolve all includes
+                        processIncludes(initialState)
+                        println("After processIncludes: \n"+GraphQLPrinter().print(queryAST.match))
+
+                        // Now process subsetting specific directives like __everything
+                        println("After processSubsetDirectives:")
+                        processSubsetDirectives(initialState)
                     }
                     is SelectionFragmentSpread -> TODO()
                     is SelectionInlineFragment -> TODO()
@@ -129,16 +148,15 @@ class HasuraSubset {
         state: DirectiveProcessingState,
     )
     {
-        var(target,
-            typeName,
+        var (targetField,
             alwaysIncludeUUTypeName,
             schemaDocument,
             recurse,
-            includeRoot,
-            includeStack
         ) = state
 
-        processIncludes(state)
+        var (field,
+            typeName
+        ) = targetField
 
         val opTypeDefinition = schemaDocument.getType(typeName)
         if (opTypeDefinition == null) {
@@ -146,7 +164,7 @@ class HasuraSubset {
         }
 
         // Do we have an __everything selection
-        var everythingSelection = target.selectionSet.filter {
+        var everythingSelection = field.selectionSet.filter {
             when(it) {
                 is SelectionField -> {
                     it.selection.name.toLowerCase() == "__everything"
@@ -158,7 +176,7 @@ class HasuraSubset {
 
         // Collect all scalars except those starting with __ (except __everythig). Ie. __typename is only
         // included in final list if explicitly set, __everything won't generate it on its own.
-        var scalarSelections = target.selectionSet.filter {
+        var scalarSelections = field.selectionSet.filter {
             if (it.selection is Field) {
                 val sel = it.selection as Field
                 // Note: keep any starting with __ except '__everything'
@@ -190,7 +208,7 @@ class HasuraSubset {
             }
 
             val remaining = mutableListOf<Selection>()
-            remaining.addAll(target.selectionSet)
+            remaining.addAll(field.selectionSet)
 
             remaining.remove(everythingSelection)
             if (!scalarSelections.isEmpty()) {
@@ -219,29 +237,174 @@ class HasuraSubset {
                     finalList.add(0, SelectionField(Field(null, "__typename", emptyList(), emptyList(), emptyList())))
                 }
             }
-            target.selectionSet = finalList
+            field.selectionSet = finalList
         }
 
         // Recurse into complex selections
         if (recurse) {
-            target.selectionSet.forEach {
+            field.selectionSet.forEach {
                 if (it.selection is Field) {
                     val field = it.selection as Field
                     if (!field.selectionSet.isEmpty()) {
                         val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
-                        processSubsetDirectives(state.copy(target = field, typeName = fieldTypeName!!))
+                        state.fieldStack.add(state.target)
+                        //state.includeStack.add(state.target)
+                        processSubsetDirectives(state.copy(TargetField(field, fieldTypeName!!)))
+                        state.fieldStack.removeLast()
                     }
                 }
             }
         }
     }
 
+    suspend private fun processInclude(
+        state: DirectiveProcessingState,
+        file: String,
+        recurse: Int,
+    ) {
+        var absPath = file
+        if (!file.startsWith("/")) {
+            absPath = if(state.includeRoot != null) state.includeRoot+"/"+file else file
+        }
+
+        val incFile = absPath.uniVfs
+        val incContent = incFile.readString()
+        //println("incContent $incContent")
+        val parseRes = GraphQLParser.parseWithResult(incContent)
+        if (parseRes.match == null) {
+            throw HasuraSubsetException("Unable to parse included file as $absPath. Error at: ${parseRes.rest.state.row}:${parseRes.rest.state.col}")
+        }
+
+        val include = Include(absPath, recurse)
+        state.includeStack.add(include)
+
+        mergeIncluded(state, parseRes.match)
+
+        state.includeStack.removeLast()
+    }
+
     suspend private fun processIncludes(
         state: DirectiveProcessingState
-    )
-    {
-        val target = state.target
-        val includeRoot = state.includeRoot
+    ) {
+        val target = state.target.field
+        val opTypeDefinition = state.schemaDocument.getType(state.target.typeName)
+        if (opTypeDefinition == null) {
+            HasuraSubsetException("No type definition ${opTypeDefinition} found in graphql schema")
+        }
+
+        target.selectionSet.forEach { sel ->
+            if (!(sel is SelectionField)) {
+                return@forEach
+            }
+
+            // Handle __include
+            if (sel.selection.name.toLowerCase() == "__include") {
+                if (!sel.selection.arguments.isEmpty()) {
+                    sel.selection.arguments.forEach { arg ->
+                        // Files define simple includes which we can process right away
+                        if (arg.name == "files") {
+                            if (!(arg.value is Value.ValueList)) {
+                                throw HasuraSubsetException("__include(files: ...) must have an array argument")
+                            }
+
+                            (arg.value as Value.ValueList).value.forEach { argValue ->
+                                if (!(argValue is Value.ValueString)) {
+                                    throw HasuraSubsetException("__include value is not a string: $argValue")
+                                }
+                                var path = argValue.value
+
+                                processInclude(state, path, 1)
+                            }
+                        }
+                        else if (arg.name == "file") {
+                            if (!(arg.value is Value.ValueString)) {
+                                throw HasuraSubsetException("__include(file: ...) must have a String argument")
+                            }
+
+                            val path = (arg.value as Value.ValueString).value
+                            var recurseValue = 1
+                            val recourseArg = sel.selection.arguments.find { it.name == "recurse" }
+                            if (recourseArg != null) {
+                                if (!(recourseArg.value is Value.ValueInt)) {
+                                    throw HasuraSubsetException("__include(recurse: ...) must have an Int argument")
+                                }
+                                recurseValue = (recourseArg.value as Value.ValueInt).value.toInt()
+                            }
+
+                            processInclude(state, path, recurseValue)
+                        }
+                    }
+                }
+
+            }
+            // Any other field
+            else if (!sel.selection.name.startsWith("__")) {
+                val fieldTypeName = opTypeDefinition!!.typeNameOfField(sel.selection.name)
+                state.fieldStack.add(state.target)
+                processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!)))
+                state.fieldStack.removeLast()
+            }
+        }
+//        //
+//        // Collect __include
+//        //
+//        var includes = target.selectionSet.filter {
+//            when(it) {
+//                is SelectionField -> {
+//                    it.selection.name.toLowerCase() == "__include"
+//                }
+//                is SelectionFragmentSpread -> TODO()
+//                is SelectionInlineFragment -> TODO()
+//            }
+//        }
+//
+//        //
+//        // Process includes
+//        //
+//        includes.forEach { sel ->
+//            if (!(sel as SelectionField).selection.arguments.isEmpty()) {
+//                sel.selection.arguments.forEach { arg ->
+//                    // Files define simple includes which we can process right away
+//                    if (arg.name == "files") {
+//                        if (!(arg.value is Value.ValueList)) {
+//                            throw HasuraSubsetException("__include(files: ...) must have an array argument")
+//                        }
+//
+//                        (arg.value as Value.ValueList).value.forEach { argValue ->
+//                            if (!(argValue is Value.ValueString)) {
+//                                throw HasuraSubsetException("__include value is not a string: $argValue")
+//                            }
+//                            var path = argValue.value
+//
+//                            processInclude(state, path, 1)
+//                        }
+//                    }
+//                    else if (arg.name == "file") {
+//                        if (!(arg.value is Value.ValueString)) {
+//                            throw HasuraSubsetException("__include(file: ...) must have a String argument")
+//                        }
+//
+//                        val path = (arg.value as Value.ValueString).value
+//                        var recurseValue = 1
+//                        val recourseArg = sel.selection.arguments.find { it.name == "recurse" }
+//                        if (recourseArg != null) {
+//                            if (!(recourseArg.value is Value.ValueInt)) {
+//                                throw HasuraSubsetException("__include(recurse: ...) must have an Int argument")
+//                            }
+//                            recurseValue = (recourseArg.value as Value.ValueInt).value.toInt()
+//                        }
+//
+//                        processInclude(state, path, recurseValue)
+//                    }
+//                }
+//            }
+//        }
+    }
+
+    suspend private fun processIncludes_old(
+        state: DirectiveProcessingState
+    ) {
+        val target = state.target.field
 
         //
         // Collect __include
@@ -261,7 +424,8 @@ class HasuraSubset {
         //
         includes.forEach { sel ->
             if (!(sel as SelectionField).selection.arguments.isEmpty()) {
-                (sel as SelectionField).selection.arguments.forEach { arg ->
+                sel.selection.arguments.forEach { arg ->
+                    // Files define simple includes which we can process right away
                     if (arg.name == "files") {
                         if (!(arg.value is Value.ValueList)) {
                             throw HasuraSubsetException("__include(files: ...) must have an array argument")
@@ -272,18 +436,26 @@ class HasuraSubset {
                                 throw HasuraSubsetException("__include value is not a string: $argValue")
                             }
                             var path = argValue.value
-                            if (!path.startsWith("/")) {
-                                path = if(includeRoot != null) includeRoot+"/"+path else path
-                            }
-                            val incFile = path.uniVfs
-                            val incContent = incFile.readString()
-                            //println("incContent $incContent")
-                            val parseRes = GraphQLParser.parseWithResult(incContent)
-                            if (parseRes.match == null) {
-                                throw HasuraSubsetException("Unable to parse included file as $path. Error at: ${parseRes.rest.state.row}:${parseRes.rest.state.col}")
-                            }
-                            mergeIncluded(target, parseRes.match)
+
+                            processInclude(state, path, 1)
                         }
+                    }
+                    else if (arg.name == "file") {
+                        if (!(arg.value is Value.ValueString)) {
+                            throw HasuraSubsetException("__include(file: ...) must have a String argument")
+                        }
+
+                        val path = (arg.value as Value.ValueString).value
+                        var recurseValue = 1
+                        val recourseArg = sel.selection.arguments.find { it.name == "recurse" }
+                        if (recourseArg != null) {
+                            if (!(recourseArg.value is Value.ValueInt)) {
+                                throw HasuraSubsetException("__include(recurse: ...) must have an Int argument")
+                            }
+                            recurseValue = (recourseArg.value as Value.ValueInt).value.toInt()
+                        }
+
+                        processInclude(state, path, recurseValue)
                     }
                 }
             }
@@ -293,24 +465,37 @@ class HasuraSubset {
     /**
      * Merge into a target query the selection set of the included.
      */
-    private fun mergeIncluded(
-        target: WithSelectionSet,
+    private suspend fun mergeIncluded(
+        state: DirectiveProcessingState,
         included: Document
     )
     {
+        val opTypeDefinition = state.schemaDocument.getType(state.target.typeName)
+        if (opTypeDefinition == null) {
+            HasuraSubsetException("No type definition ${opTypeDefinition} found in graphql schema")
+        }
+
         val merged = mutableListOf<Selection>()
 
         // Add all to final result except __include fields
-        merged.addAll(target.selectionSet.filter {
+        merged.addAll(state.target.field.selectionSet.filter {
             !(it is SelectionField && it.selection.name == "__include")
         })
 
         included.definitions.forEach {
             val op = ((it as DefinitionExecutable).definition as ExecutableDefinitionOperation).definition as OperationDefinitionSelectionSet
+            op.selectionSet.forEach { sel ->
+                if (sel is SelectionField && !sel.selection.name.startsWith("__")) {
+                    val fieldTypeName = opTypeDefinition!!.typeNameOfField(sel.selection.name)
+                    state.fieldStack.add(state.target)
+                    processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!)))
+                    state.fieldStack.removeLast()
+                }
+            }
             merged.addAll(op.selectionSet)
         }
 
-        target.selectionSet = merged
+        state.target.field.selectionSet = merged
     }
 
 

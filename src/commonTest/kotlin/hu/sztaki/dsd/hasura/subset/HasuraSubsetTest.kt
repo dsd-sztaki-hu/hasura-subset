@@ -296,4 +296,19 @@ class HasuraSubsetTest {
 
     }
 
+    @Test
+    fun test_processGraphql_recursiveQuery() = suspendTest {
+        val hasuraSubset = HasuraSubset()
+
+        println("test_processGraphql_recursiveQuery input query: $tweetQueryWithUuIncludeRecursive")
+        val result = hasuraSubset.processGraphql(
+            tweetQueryWithUuIncludeRecursive,
+            tweetGraphql,
+            false,
+            testResourceDir)
+        println("test_processGraphql_recursiveQuery result: $result")
+        assertEquals(tweetQueryExpaned, result)
+    }
+
+
 }
