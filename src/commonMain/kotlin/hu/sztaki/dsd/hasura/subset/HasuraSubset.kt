@@ -25,6 +25,7 @@ expect fun graphqlQueryToAst(query: String): String
  */
 class HasuraSubset {
 
+
     data class CopyResult(
         val fromServerResult: String? = null,
         val fromServerError: String? = null,
@@ -49,10 +50,9 @@ class HasuraSubset {
     )
 
     private data class TargetField(
-        val field: WithSelectionSet,
+        val field: Field,
         val typeName: String,
     )
-
 
     private data class DirectiveProcessingState(
         val target: TargetField,
@@ -63,6 +63,11 @@ class HasuraSubset {
         val includeStack: MutableList<Include> = mutableListOf(),
         val fieldStack: MutableList<TargetField> = mutableListOf()
     )
+
+    private enum class ProcessIncludeStatus {
+        OK,
+        IGNORE_LAST_FIELD
+    }
 
     val cachedSchemas = mutableMapOf<String, JsonObject>()
 
@@ -111,11 +116,6 @@ class HasuraSubset {
                     is SelectionField -> {
                         val queryOp = it.selection.name
 
-                        // Ignore __everything, __typename, etc.
-//                        if (queryOp.startsWith("__") && !queryOp.startsWith("__include")) {
-//                            return@forEach
-//                        }
-
                         // Find operation type in schema
                         val opInIntro = schemaDocument.findQueryOperation(queryOp)
                             ?: throw HasuraSubsetException("No query operation type ${op.name} found in graphql schema")
@@ -124,10 +124,9 @@ class HasuraSubset {
                         val initialState = DirectiveProcessingState(TargetField(it.selection, opTypeName), alwaysIncludeTypeName, schemaDocument, true, includeRoot)
                         // First resolve all includes
                         processIncludes(initialState)
-                        println("After processIncludes: \n"+GraphQLPrinter().print(queryAST.match))
+                        //println("After processIncludes: \n"+GraphQLPrinter().print(queryAST.match))
 
                         // Now process subsetting specific directives like __everything
-                        println("After processSubsetDirectives:")
                         processSubsetDirectives(initialState)
                     }
                     is SelectionFragmentSpread -> TODO()
@@ -144,7 +143,7 @@ class HasuraSubset {
      * and so we don't have to always handpick fields. This is also comes handy when schema changes as we don't have
      * to update when a simple field changes.
      */
-    suspend private fun processSubsetDirectives(
+    private fun processSubsetDirectives(
         state: DirectiveProcessingState,
     )
     {
@@ -248,7 +247,6 @@ class HasuraSubset {
                     if (!field.selectionSet.isEmpty()) {
                         val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
                         state.fieldStack.add(state.target)
-                        //state.includeStack.add(state.target)
                         processSubsetDirectives(state.copy(TargetField(field, fieldTypeName!!)))
                         state.fieldStack.removeLast()
                     }
@@ -257,35 +255,17 @@ class HasuraSubset {
         }
     }
 
-    suspend private fun processInclude(
-        state: DirectiveProcessingState,
-        file: String,
-        recurse: Int,
-    ) {
-        var absPath = file
-        if (!file.startsWith("/")) {
-            absPath = if(state.includeRoot != null) state.includeRoot+"/"+file else file
-        }
-
-        val incFile = absPath.uniVfs
-        val incContent = incFile.readString()
-        //println("incContent $incContent")
-        val parseRes = GraphQLParser.parseWithResult(incContent)
-        if (parseRes.match == null) {
-            throw HasuraSubsetException("Unable to parse included file as $absPath. Error at: ${parseRes.rest.state.row}:${parseRes.rest.state.col}")
-        }
-
-        val include = Include(absPath, recurse)
-        state.includeStack.add(include)
-
-        mergeIncluded(state, parseRes.match)
-
-        state.includeStack.removeLast()
-    }
-
+    /**
+     * Processes __include directives of the state.target field. The __include maybe recursive, ie. when a `file`
+     * is specified and `recurse` value. In this case if the recursion depth is reached `processIncludes` returns
+     * ProcessIncludeStatus.IGNORE_LAST_FIELD signing for caller that the `state.target.field` should not be included
+     * in the final output. If ProcessIncludeStatus.OK is returned then the inclusioon was executed and
+     * `state.target.field` should be included in the final result.
+     */
     suspend private fun processIncludes(
         state: DirectiveProcessingState
-    ) {
+    ): ProcessIncludeStatus
+    {
         val target = state.target.field
         val opTypeDefinition = state.schemaDocument.getType(state.target.typeName)
         if (opTypeDefinition == null) {
@@ -313,7 +293,9 @@ class HasuraSubset {
                                 }
                                 var path = argValue.value
 
+                                state.fieldStack.add(state.target)
                                 processInclude(state, path, 1)
+                                state.fieldStack.removeLast()
                             }
                         }
                         else if (arg.name == "file") {
@@ -331,7 +313,12 @@ class HasuraSubset {
                                 recurseValue = (recourseArg.value as Value.ValueInt).value.toInt()
                             }
 
-                            processInclude(state, path, recurseValue)
+                            state.fieldStack.add(state.target)
+                            val status = processInclude(state, path, recurseValue)
+                            state.fieldStack.removeLast()
+                            if (status == ProcessIncludeStatus.IGNORE_LAST_FIELD) {
+                                return ProcessIncludeStatus.IGNORE_LAST_FIELD
+                            }
                         }
                     }
                 }
@@ -345,121 +332,69 @@ class HasuraSubset {
                 state.fieldStack.removeLast()
             }
         }
-//        //
-//        // Collect __include
-//        //
-//        var includes = target.selectionSet.filter {
-//            when(it) {
-//                is SelectionField -> {
-//                    it.selection.name.toLowerCase() == "__include"
-//                }
-//                is SelectionFragmentSpread -> TODO()
-//                is SelectionInlineFragment -> TODO()
-//            }
-//        }
-//
-//        //
-//        // Process includes
-//        //
-//        includes.forEach { sel ->
-//            if (!(sel as SelectionField).selection.arguments.isEmpty()) {
-//                sel.selection.arguments.forEach { arg ->
-//                    // Files define simple includes which we can process right away
-//                    if (arg.name == "files") {
-//                        if (!(arg.value is Value.ValueList)) {
-//                            throw HasuraSubsetException("__include(files: ...) must have an array argument")
-//                        }
-//
-//                        (arg.value as Value.ValueList).value.forEach { argValue ->
-//                            if (!(argValue is Value.ValueString)) {
-//                                throw HasuraSubsetException("__include value is not a string: $argValue")
-//                            }
-//                            var path = argValue.value
-//
-//                            processInclude(state, path, 1)
-//                        }
-//                    }
-//                    else if (arg.name == "file") {
-//                        if (!(arg.value is Value.ValueString)) {
-//                            throw HasuraSubsetException("__include(file: ...) must have a String argument")
-//                        }
-//
-//                        val path = (arg.value as Value.ValueString).value
-//                        var recurseValue = 1
-//                        val recourseArg = sel.selection.arguments.find { it.name == "recurse" }
-//                        if (recourseArg != null) {
-//                            if (!(recourseArg.value is Value.ValueInt)) {
-//                                throw HasuraSubsetException("__include(recurse: ...) must have an Int argument")
-//                            }
-//                            recurseValue = (recourseArg.value as Value.ValueInt).value.toInt()
-//                        }
-//
-//                        processInclude(state, path, recurseValue)
-//                    }
-//                }
-//            }
-//        }
+
+        return ProcessIncludeStatus.OK
     }
 
-    suspend private fun processIncludes_old(
-        state: DirectiveProcessingState
-    ) {
-        val target = state.target.field
+    /**
+     * Processes a single __include directive. This function takes care of caluclating recursion depth. If recursion
+     * depth is reached it won't execute the inclusion and will return ProcessIncludeStatus.IGNORE_LAST_FIELD, otherwise
+     * the inclusion will be executed and ProcessIncludeStatus.OK will be returned.
+     */
+    suspend private fun processInclude(
+        state: DirectiveProcessingState,
+        file: String,
+        recurse: Int,
+    ) : ProcessIncludeStatus
+    {
+        var absPath = file
+        if (!file.startsWith("/")) {
+            absPath = if(state.includeRoot != null) state.includeRoot+"/"+file else file
+        }
 
+        val include = Include(absPath, recurse)
+
+        val parent = state.includeStack.reversed().find {
+            it.file == include.file
+        }
+
+        // Should we recurse?
         //
-        // Collect __include
-        //
-        var includes = target.selectionSet.filter {
-            when(it) {
-                is SelectionField -> {
-                    it.selection.name.toLowerCase() == "__include"
+        // If going up in include stack we find the same path for the same field as te current target
+        // then it is a recursion.
+        if (parent != null) {
+            val ix = state.includeStack.indexOf(parent)
+            val target = state.fieldStack.get(ix)
+            // if it is a recursion: should we continue or stop?
+            if (target.field.name == state.target.field.name) {
+                if (parent.recursed == parent.recurse) {
+                    return ProcessIncludeStatus.IGNORE_LAST_FIELD
                 }
-                is SelectionFragmentSpread -> TODO()
-                is SelectionInlineFragment -> TODO()
+                include.recursed = parent.recursed
             }
         }
 
-        //
-        // Process includes
-        //
-        includes.forEach { sel ->
-            if (!(sel as SelectionField).selection.arguments.isEmpty()) {
-                sel.selection.arguments.forEach { arg ->
-                    // Files define simple includes which we can process right away
-                    if (arg.name == "files") {
-                        if (!(arg.value is Value.ValueList)) {
-                            throw HasuraSubsetException("__include(files: ...) must have an array argument")
-                        }
+        // Otherwise recurse
+        state.includeStack.add(include)
 
-                        (arg.value as Value.ValueList).value.forEach { argValue ->
-                            if (!(argValue is Value.ValueString)) {
-                                throw HasuraSubsetException("__include value is not a string: $argValue")
-                            }
-                            var path = argValue.value
-
-                            processInclude(state, path, 1)
-                        }
-                    }
-                    else if (arg.name == "file") {
-                        if (!(arg.value is Value.ValueString)) {
-                            throw HasuraSubsetException("__include(file: ...) must have a String argument")
-                        }
-
-                        val path = (arg.value as Value.ValueString).value
-                        var recurseValue = 1
-                        val recourseArg = sel.selection.arguments.find { it.name == "recurse" }
-                        if (recourseArg != null) {
-                            if (!(recourseArg.value is Value.ValueInt)) {
-                                throw HasuraSubsetException("__include(recurse: ...) must have an Int argument")
-                            }
-                            recurseValue = (recourseArg.value as Value.ValueInt).value.toInt()
-                        }
-
-                        processInclude(state, path, recurseValue)
-                    }
-                }
-            }
+        // Load the file and parse content
+        val incFile = absPath.uniVfs
+        val incContent = incFile.readString()
+        val parseRes = GraphQLParser.parseWithResult(incContent)
+        if (parseRes.match == null) {
+            throw HasuraSubsetException("Unable to parse included file as $absPath. Error at: ${parseRes.rest.state.row}:${parseRes.rest.state.col}")
         }
+
+        // Inc recursed count
+        include.recursed++
+
+        // Add the included stuff to the main document (ie. to the state.target.field)
+        mergeIncluded(state, parseRes.match)
+
+        state.includeStack.removeLast()
+
+        // File was included, field where it was included should be kept
+        return ProcessIncludeStatus.OK
     }
 
     /**
@@ -482,17 +417,24 @@ class HasuraSubset {
             !(it is SelectionField && it.selection.name == "__include")
         })
 
+
         included.definitions.forEach {
             val op = ((it as DefinitionExecutable).definition as ExecutableDefinitionOperation).definition as OperationDefinitionSelectionSet
             op.selectionSet.forEach { sel ->
                 if (sel is SelectionField && !sel.selection.name.startsWith("__")) {
                     val fieldTypeName = opTypeDefinition!!.typeNameOfField(sel.selection.name)
-                    state.fieldStack.add(state.target)
-                    processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!)))
-                    state.fieldStack.removeLast()
+                    //state.fieldStack.add(state.target)
+                    val status = processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!)))
+                    // Only add field if we actually needed this recursive include. If it was ignored (ie. recursion
+                    // level reached) then we don't add it to `marged`
+                    if (status == ProcessIncludeStatus.OK) {
+                        merged.add(sel)
+                    }
+                }
+                else {
+                    merged.add(sel)
                 }
             }
-            merged.addAll(op.selectionSet)
         }
 
         state.target.field.selectionSet = merged

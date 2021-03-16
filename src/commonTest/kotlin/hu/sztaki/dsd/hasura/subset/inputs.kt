@@ -2364,3 +2364,133 @@ val tweetQueryWithUuIncludeRecursive = """
        }
     }
 """.trimIndent()
+
+val tweetQueryWithUuIncludeRecursiveExpanded  ="""
+query testTweetQuery(${"$"}sort_field: String)  {
+  Tweets(limit: 10, sort_field: ${"$"}sort_field) {
+    id
+    body
+    date
+    Author {
+      username
+      __typename
+      id
+      first_name
+      last_name
+      full_name
+      friends {
+        id
+        username
+        first_name
+        last_name
+        full_name
+        name
+        avatar_url
+        friends {
+          id
+          username
+          first_name
+          last_name
+          full_name
+          name
+          avatar_url
+        }
+      }
+    }
+    ReplyTo {
+      id
+      body
+      date
+      Author {
+        username
+        __typename
+        id
+        first_name
+        last_name
+        full_name
+        friends {
+          id
+          username
+          first_name
+          last_name
+          full_name
+          name
+          avatar_url
+          friends {
+            id
+            username
+            first_name
+            last_name
+            full_name
+            name
+            avatar_url
+          }
+        }
+      }
+      ReplyTo {
+        id
+        body
+        date
+        Author {
+          username
+          __typename
+          id
+          first_name
+          last_name
+          full_name
+          friends {
+            id
+            username
+            first_name
+            last_name
+            full_name
+            name
+            avatar_url
+            friends {
+              id
+              username
+              first_name
+              last_name
+              full_name
+              name
+              avatar_url
+            }
+          }
+        }
+        ReplyTo {
+          id
+          body
+          date
+          Author {
+            username
+            __typename
+            id
+            first_name
+            last_name
+            full_name
+            friends {
+              id
+              username
+              first_name
+              last_name
+              full_name
+              name
+              avatar_url
+              friends {
+                id
+                username
+                first_name
+                last_name
+                full_name
+                name
+                avatar_url
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+""".trimIndent()

@@ -307,7 +307,7 @@ class HasuraSubsetTest {
             false,
             testResourceDir)
         println("test_processGraphql_recursiveQuery result: $result")
-        assertEquals(tweetQueryExpaned, result)
+        assertEquals(tweetQueryWithUuIncludeRecursiveExpanded, result)
     }
 
 
