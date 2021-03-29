@@ -329,8 +329,12 @@ class HasuraSubset {
             else if (!sel.selection.name.startsWith("__")) {
                 val fieldTypeName = opTypeDefinition!!.typeNameOfField(sel.selection.name)
                 state.fieldStack.add(state.target)
-                processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!, state.includeStack.lastOrNull())))
+                val status = processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!, state.includeStack.lastOrNull())))
                 state.fieldStack.removeLast()
+                if (status == ProcessIncludeStatus.IGNORE_LAST_FIELD) {
+                    return ProcessIncludeStatus.IGNORE_LAST_FIELD
+                }
+
             }
         }
 
@@ -362,7 +366,8 @@ class HasuraSubset {
                 firstIgnorred = true
                 continue
             }
-            if (parentField.field.name == state.target.field.name) {
+            if (parentField.field.name == state.target.field.name &&
+                parentField.typeName == state.target.typeName) {
                 if (parentField.inInclude != null && parentField.inInclude.file == state.includeStack.last().file) {
                     if (state.includeStack.last().recurse == state.includeStack.last().recursed) {
                         return ProcessIncludeStatus.IGNORE_LAST_FIELD

@@ -1,0 +1,10 @@
+{
+    # DivisionContainment
+    parent {
+        # inst
+        child {
+            mtid
+            __include(file: "inst2.graphql", recurse: 3)
+        }
+    }
+}

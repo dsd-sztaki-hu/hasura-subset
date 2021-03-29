@@ -310,4 +310,48 @@ class HasuraSubsetTest {
         assertEquals(tweetQueryWithUuIncludeRecursiveExpanded, result)
     }
 
+    @Test
+    fun test_processGraphql_recursiveQueryInst() = suspendTest {
+        val hasuraSubset = HasuraSubset()
+
+        val schemaFile = "$testResourceDir/mtmt2.graphql".uniVfs
+        val schema = schemaFile.readString()
+
+        val q = """
+            query test() {
+                organizations {
+                    __include(file: "inst2.graphql")
+                }
+            }
+        """.trimIndent()
+        val result = hasuraSubset.processGraphql(
+            q,
+            schema,
+            false,
+            testResourceDir)
+        println("test_processGraphql_recursiveQuery result: $result")
+        assertEquals("""
+            query test  {
+              organizations {
+                parent {
+                  child {
+                    mtid
+                    parent {
+                      child {
+                        mtid
+                        parent {
+                          child {
+                            mtid
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            
+        """.trimIndent(), result)
+
+    }
 }
