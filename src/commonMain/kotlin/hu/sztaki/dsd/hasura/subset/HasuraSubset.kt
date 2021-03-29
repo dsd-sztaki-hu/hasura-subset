@@ -52,6 +52,7 @@ class HasuraSubset {
     private data class TargetField(
         val field: Field,
         val typeName: String,
+        val inInclude: Include? = null
     )
 
     private data class DirectiveProcessingState(
@@ -247,7 +248,7 @@ class HasuraSubset {
                     if (!field.selectionSet.isEmpty()) {
                         val fieldTypeName = opTypeDefinition!!.typeNameOfField(field.name)
                         state.fieldStack.add(state.target)
-                        processSubsetDirectives(state.copy(TargetField(field, fieldTypeName!!)))
+                        processSubsetDirectives(state.copy(TargetField(field, fieldTypeName!!, state.includeStack.lastOrNull())))
                         state.fieldStack.removeLast()
                     }
                 }
@@ -328,7 +329,7 @@ class HasuraSubset {
             else if (!sel.selection.name.startsWith("__")) {
                 val fieldTypeName = opTypeDefinition!!.typeNameOfField(sel.selection.name)
                 state.fieldStack.add(state.target)
-                processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!)))
+                processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!, state.includeStack.lastOrNull())))
                 state.fieldStack.removeLast()
             }
         }
@@ -345,32 +346,29 @@ class HasuraSubset {
         state: DirectiveProcessingState,
         file: String,
         recurse: Int,
-    ) : ProcessIncludeStatus
-    {
+    ) : ProcessIncludeStatus {
         var absPath = file
         if (!file.startsWith("/")) {
-            absPath = if(state.includeRoot != null) state.includeRoot+"/"+file else file
+            absPath = if (state.includeRoot != null) state.includeRoot + "/" + file else file
         }
 
-        val include = Include(absPath, recurse)
+        val include = Include(absPath, recurse, 0)
 
-        val parent = state.includeStack.reversed().find {
-            it.file == include.file
-        }
-
-        // Should we recurse?
-        //
-        // If going up in include stack we find the same path for the same field as te current target
-        // then it is a recursion.
-        if (parent != null) {
-            val ix = state.includeStack.indexOf(parent)
-            val target = state.fieldStack.get(ix)
-            // if it is a recursion: should we continue or stop?
-            if (target.field.name == state.target.field.name) {
-                if (parent.recursed == parent.recurse) {
-                    return ProcessIncludeStatus.IGNORE_LAST_FIELD
+        // Handle recursion. Transitive recursion A -> B -> C -> A causes infinite recursion for now
+        // A -> B -> A will work.
+        var firstIgnorred = false
+        for (parentField in state.fieldStack.reversed()) {
+            if (!firstIgnorred) {
+                firstIgnorred = true
+                continue
+            }
+            if (parentField.field.name == state.target.field.name) {
+                if (parentField.inInclude != null && parentField.inInclude.file == state.includeStack.last().file) {
+                    if (state.includeStack.last().recurse == state.includeStack.last().recursed) {
+                        return ProcessIncludeStatus.IGNORE_LAST_FIELD
+                    }
+                    include.recursed = state.includeStack.last().recursed
                 }
-                include.recursed = parent.recursed
             }
         }
 
@@ -424,7 +422,7 @@ class HasuraSubset {
                 if (sel is SelectionField && !sel.selection.name.startsWith("__")) {
                     val fieldTypeName = opTypeDefinition!!.typeNameOfField(sel.selection.name)
                     //state.fieldStack.add(state.target)
-                    val status = processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!)))
+                    val status = processIncludes(state.copy(target = TargetField(sel.selection, fieldTypeName!!, state.includeStack.lastOrNull())))
                     // Only add field if we actually needed this recursive include. If it was ignored (ie. recursion
                     // level reached) then we don't add it to `marged`
                     if (status == ProcessIncludeStatus.OK) {
@@ -439,8 +437,6 @@ class HasuraSubset {
 
         state.target.field.selectionSet = merged
     }
-
-
 
     /**
      * Executes a graphql query  on a given server.

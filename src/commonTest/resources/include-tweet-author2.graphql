@@ -6,6 +6,6 @@
     last_name
     full_name
     friends {
-        __include(file: "include-tweet-friends2.graphql", recurse: 3)
+        __include(file: "include-tweet-friends2.graphql", recurse: 2)
     }
 }

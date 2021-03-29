@@ -310,5 +310,4 @@ class HasuraSubsetTest {
         assertEquals(tweetQueryWithUuIncludeRecursiveExpanded, result)
     }
 
-
 }

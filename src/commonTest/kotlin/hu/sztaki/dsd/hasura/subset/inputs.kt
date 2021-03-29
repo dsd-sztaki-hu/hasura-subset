@@ -2394,6 +2394,15 @@ query testTweetQuery(${"$"}sort_field: String)  {
           full_name
           name
           avatar_url
+          friends {
+            id
+            username
+            first_name
+            last_name
+            full_name
+            name
+            avatar_url
+          }
         }
       }
     }
@@ -2424,6 +2433,15 @@ query testTweetQuery(${"$"}sort_field: String)  {
             full_name
             name
             avatar_url
+            friends {
+              id
+              username
+              first_name
+              last_name
+              full_name
+              name
+              avatar_url
+            }
           }
         }
       }
@@ -2454,6 +2472,15 @@ query testTweetQuery(${"$"}sort_field: String)  {
               full_name
               name
               avatar_url
+              friends {
+                id
+                username
+                first_name
+                last_name
+                full_name
+                name
+                avatar_url
+              }
             }
           }
         }
@@ -2484,6 +2511,15 @@ query testTweetQuery(${"$"}sort_field: String)  {
                 full_name
                 name
                 avatar_url
+                friends {
+                  id
+                  username
+                  first_name
+                  last_name
+                  full_name
+                  name
+                  avatar_url
+                }
               }
             }
           }
