@@ -399,7 +399,8 @@ class HasuraSubset {
 
         val include = Include(absPath, recurse, 0, GLOBAL_ID++)
 
-        println(state)
+        //println(state)
+
         // Handle recursion. Transitive recursion A -> B -> C -> A causes infinite recursion for now
         // A -> B -> A will work.
         var firstIgnorred = false
