@@ -320,7 +320,7 @@ class HasuraSubsetTest {
         val q = """
             query test() {
                 organizations {
-                    __include(file: "inst2.graphql")
+                    __include(file: "inst.graphql")
                 }
             }
         """.trimIndent()
@@ -330,28 +330,7 @@ class HasuraSubsetTest {
             false,
             testResourceDir)
         println("test_processGraphql_recursiveQuery result: $result")
-        assertEquals("""
-            query test  {
-              organizations {
-                parent {
-                  child {
-                    mtid
-                    parent {
-                      child {
-                        mtid
-                        parent {
-                          child {
-                            mtid
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            
-        """.trimIndent(), result)
+        assertEquals(recursiveQueryInstResult, result)
 
     }
 }

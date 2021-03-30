@@ -43,17 +43,39 @@ class HasuraSubset {
         val columns: List<String>
     )
 
+    var GLOBAL_ID = 1
+
     private data class Include(
         val file: String,
         val recurse: Int = 1,
-        var recursed: Int = 0
-    )
+        var recursed: Int = 0,
+        val id : Int,
+    ) {
+        override fun toString(): String {
+            val target = this
+            return buildString {
+                append("${target.id}: ${target.file.split("/").last()} -- ")
+                append("$recurse : $recursed")
+            }
+
+        }
+    }
 
     private data class TargetField(
         val field: Field,
         val typeName: String,
         val inInclude: Include? = null
-    )
+    ) {
+        override fun toString(): String {
+            val target = this
+            return buildString {
+                append("${target.field.name}:${target.typeName} -- ")
+                if (target.inInclude != null) {
+                    append(inInclude.toString())
+                }
+            }
+        }
+    }
 
     private data class DirectiveProcessingState(
         val target: TargetField,
@@ -63,7 +85,26 @@ class HasuraSubset {
         val includeRoot: String? = null,
         val includeStack: MutableList<Include> = mutableListOf(),
         val fieldStack: MutableList<TargetField> = mutableListOf()
-    )
+    ) {
+        override fun toString(): String {
+            return buildString {
+                append("State:\n")
+                append("\ttarget: $target\n")
+                append("\tfieldStack: \n")
+                fieldStack.forEachIndexed { index, it ->
+                    append("\t".repeat(index+2))
+                    append(it)
+                    append("\n")
+                }
+                append("\tincludeStack: \n")
+                includeStack.forEachIndexed { index, it ->
+                    append("\t".repeat(index+2))
+                    append(it)
+                    append("\n")
+                }
+            }
+        }
+    }
 
     private enum class ProcessIncludeStatus {
         OK,
@@ -356,8 +397,9 @@ class HasuraSubset {
             absPath = if (state.includeRoot != null) state.includeRoot + "/" + file else file
         }
 
-        val include = Include(absPath, recurse, 0)
+        val include = Include(absPath, recurse, 0, GLOBAL_ID++)
 
+        println(state)
         // Handle recursion. Transitive recursion A -> B -> C -> A causes infinite recursion for now
         // A -> B -> A will work.
         var firstIgnorred = false
@@ -366,14 +408,28 @@ class HasuraSubset {
                 firstIgnorred = true
                 continue
             }
-            if (parentField.field.name == state.target.field.name &&
-                parentField.typeName == state.target.typeName) {
-                if (parentField.inInclude != null && parentField.inInclude.file == state.includeStack.last().file) {
-                    if (state.includeStack.last().recurse == state.includeStack.last().recursed) {
-                        return ProcessIncludeStatus.IGNORE_LAST_FIELD
-                    }
-                    include.recursed = state.includeStack.last().recursed
+            // Find up in the stack the field which is to be recursed
+            if (parentField.field.name == state.target.field.name
+                &&  parentField.typeName == state.target.typeName
+                && parentField.inInclude != null
+            ) {
+                // TODO: Need to check file path?
+
+                // Find the include where the field has been included
+                var ix = state.includeStack.indexOf(parentField.inInclude)
+
+                // Find in the stack the next include that has been included from that field.
+                // This is the include, which recurses
+                var inc = state.includeStack[ix+1]
+
+                // Reached recursion limit?
+                if (inc.recurse == inc.recursed) {
+                    return ProcessIncludeStatus.IGNORE_LAST_FIELD
                 }
+
+                // Now start recursion from the last recursed value
+                include.recursed = inc.recursed
+                break
             }
         }
 
@@ -389,6 +445,9 @@ class HasuraSubset {
         }
 
         // Inc recursed count
+        if (include.recurse == include.recursed) {
+            println("Too many recursion!!!")
+        }
         include.recursed++
 
         // Add the included stuff to the main document (ie. to the state.target.field)

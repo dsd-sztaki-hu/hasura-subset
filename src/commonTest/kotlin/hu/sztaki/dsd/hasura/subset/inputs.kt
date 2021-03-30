@@ -2394,14 +2394,93 @@ query testTweetQuery(${"$"}sort_field: String)  {
           full_name
           name
           avatar_url
-          friends {
+          tweets {
             id
-            username
-            first_name
-            last_name
-            full_name
-            name
-            avatar_url
+            body
+            date
+            Author {
+              username
+              __typename
+              id
+              first_name
+              last_name
+              full_name
+              friends {
+                id
+                username
+                first_name
+                last_name
+                full_name
+                name
+                avatar_url
+              }
+            }
+            ReplyTo {
+              id
+              body
+              date
+              Author {
+                username
+                __typename
+                id
+                first_name
+                last_name
+                full_name
+                friends {
+                  id
+                  username
+                  first_name
+                  last_name
+                  full_name
+                  name
+                  avatar_url
+                }
+              }
+              ReplyTo {
+                id
+                body
+                date
+                Author {
+                  username
+                  __typename
+                  id
+                  first_name
+                  last_name
+                  full_name
+                  friends {
+                    id
+                    username
+                    first_name
+                    last_name
+                    full_name
+                    name
+                    avatar_url
+                  }
+                }
+                ReplyTo {
+                  id
+                  body
+                  date
+                  Author {
+                    username
+                    __typename
+                    id
+                    first_name
+                    last_name
+                    full_name
+                    friends {
+                      id
+                      username
+                      first_name
+                      last_name
+                      full_name
+                      name
+                      avatar_url
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2433,14 +2512,71 @@ query testTweetQuery(${"$"}sort_field: String)  {
             full_name
             name
             avatar_url
-            friends {
+            tweets {
               id
-              username
-              first_name
-              last_name
-              full_name
-              name
-              avatar_url
+              body
+              date
+              Author {
+                username
+                __typename
+                id
+                first_name
+                last_name
+                full_name
+                friends {
+                  id
+                  username
+                  first_name
+                  last_name
+                  full_name
+                  name
+                  avatar_url
+                }
+              }
+              ReplyTo {
+                id
+                body
+                date
+                Author {
+                  username
+                  __typename
+                  id
+                  first_name
+                  last_name
+                  full_name
+                  friends {
+                    id
+                    username
+                    first_name
+                    last_name
+                    full_name
+                    name
+                    avatar_url
+                  }
+                }
+                ReplyTo {
+                  id
+                  body
+                  date
+                  Author {
+                    username
+                    __typename
+                    id
+                    first_name
+                    last_name
+                    full_name
+                    friends {
+                      id
+                      username
+                      first_name
+                      last_name
+                      full_name
+                      name
+                      avatar_url
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -2472,14 +2608,49 @@ query testTweetQuery(${"$"}sort_field: String)  {
               full_name
               name
               avatar_url
-              friends {
+              tweets {
                 id
-                username
-                first_name
-                last_name
-                full_name
-                name
-                avatar_url
+                body
+                date
+                Author {
+                  username
+                  __typename
+                  id
+                  first_name
+                  last_name
+                  full_name
+                  friends {
+                    id
+                    username
+                    first_name
+                    last_name
+                    full_name
+                    name
+                    avatar_url
+                  }
+                }
+                ReplyTo {
+                  id
+                  body
+                  date
+                  Author {
+                    username
+                    __typename
+                    id
+                    first_name
+                    last_name
+                    full_name
+                    friends {
+                      id
+                      username
+                      first_name
+                      last_name
+                      full_name
+                      name
+                      avatar_url
+                    }
+                  }
+                }
               }
             }
           }
@@ -2511,14 +2682,27 @@ query testTweetQuery(${"$"}sort_field: String)  {
                 full_name
                 name
                 avatar_url
-                friends {
+                tweets {
                   id
-                  username
-                  first_name
-                  last_name
-                  full_name
-                  name
-                  avatar_url
+                  body
+                  date
+                  Author {
+                    username
+                    __typename
+                    id
+                    first_name
+                    last_name
+                    full_name
+                    friends {
+                      id
+                      username
+                      first_name
+                      last_name
+                      full_name
+                      name
+                      avatar_url
+                    }
+                  }
                 }
               }
             }
@@ -2528,5 +2712,103 @@ query testTweetQuery(${"$"}sort_field: String)  {
     }
   }
 }
+
+""".trimIndent()
+
+val recursiveQueryInstResult =  """
+    query test  {
+      organizations {
+        parent {
+          child {
+            mtid
+            parent {
+              child {
+                mtid
+                successors {
+                  successor {
+                    mtid
+                    successors {
+                      successor {
+                        mtid
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            successors {
+              successor {
+                mtid
+                parent {
+                  child {
+                    mtid
+                    successors {
+                      successor {
+                        mtid
+                      }
+                    }
+                  }
+                }
+                successors {
+                  successor {
+                    mtid
+                    parent {
+                      child {
+                        mtid
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        successors {
+          successor {
+            mtid
+            parent {
+              child {
+                mtid
+                parent {
+                  child {
+                    mtid
+                    successors {
+                      successor {
+                        mtid
+                      }
+                    }
+                  }
+                }
+                successors {
+                  successor {
+                    mtid
+                    parent {
+                      child {
+                        mtid
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            successors {
+              successor {
+                mtid
+                parent {
+                  child {
+                    mtid
+                    parent {
+                      child {
+                        mtid
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
 """.trimIndent()

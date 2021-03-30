@@ -1,0 +1,16 @@
+{
+    parent {
+        # inst
+        child {
+            mtid
+            __include(file: "inst.graphql", recurse: 2)
+        }
+    }
+    successors {
+        # Inst
+        successor {
+            mtid
+            __include(file: "inst.graphql", recurse: 2)
+        }
+    }
+}

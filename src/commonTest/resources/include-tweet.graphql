@@ -1,7 +1,7 @@
 {
     __everything
     Author {
-        __include(file: "include-tweet-author2.graphql")
+        __include(file: "include-tweet-author2.graphql", recurse: 2)
     }
     ReplyTo {
         __include(file: "include-tweet.graphql", recurse: 3)
