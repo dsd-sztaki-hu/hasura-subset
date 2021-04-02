@@ -35,7 +35,8 @@ class HasuraSubset {
 
     data class UpsertResult(
         val mutation: String,
-        val variables: String
+        val variables: String,
+        val noResult: Boolean = false
     )
 
     data class OnConflict(
@@ -564,6 +565,11 @@ class HasuraSubset {
 
         json = if (json is JsonObject) json else throw HasuraSubsetException("json in not an object")
         val data = json["data"] as JsonObject? ?: throw HasuraSubsetException("key 'data' is not found in root")
+
+        // If there were no results, we are done
+        if (data.keys.size == 0) {
+            return UpsertResult("", "", true)
+        }
 
         var upsertVariables = mutableMapOf<String, JsonElement>()
         var upsertGraphql = StringBuilder()
