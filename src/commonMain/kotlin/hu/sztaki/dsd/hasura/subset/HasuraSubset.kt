@@ -40,8 +40,8 @@ class HasuraSubset {
     )
 
     data class OnConflict(
-        val constraint: String,
-        val columns: List<String>
+        var constraint: String,
+        var columns: List<String>
     )
 
     var GLOBAL_ID = 1
@@ -674,7 +674,23 @@ class HasuraSubset {
     {
         fun createConflict(typeName: String): JsonObject
         {
+
             val conflictValues = onConflict(typeName)
+
+            // Handle special field name "__everything", which is expanded to all scalar field names of the current
+            // type
+            val everythingField = conflictValues.columns.find {
+                it == "__everything"
+            }
+            if (everythingField != null) {
+                val opTypeDefinition = schemaDocument.getType(typeName)
+                val allFields = opTypeDefinition!!.scalarFieldNames
+                val newColumnList = mutableListOf<String>()
+                newColumnList.addAll(conflictValues.columns.filter { it != "__everything" })
+                newColumnList.addAll(allFields)
+                conflictValues.columns = newColumnList
+            }
+
             val conflict = JsonObject(mapOf(
                 "constraint" to JsonPrimitive(conflictValues.constraint),
                 "update_columns" to JsonArray(conflictValues.columns.map { JsonPrimitive(it) })

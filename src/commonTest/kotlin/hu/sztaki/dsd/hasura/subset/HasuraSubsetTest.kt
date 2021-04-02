@@ -111,7 +111,7 @@ class HasuraSubsetTest {
             {
                 HasuraSubset.OnConflict(
                     "${it}_pkey",
-                    listOf("mtid")
+                    listOf("__everything")
                 )
             }
         )
