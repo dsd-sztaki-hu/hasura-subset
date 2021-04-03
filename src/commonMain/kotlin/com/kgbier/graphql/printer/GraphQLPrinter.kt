@@ -239,6 +239,10 @@ class GraphQLPrinter(
             })
         }
 
+        private fun print(node: Value.ValueBoolean) {
+            builder.append(node.value)
+        }
+
         private fun print(node: Value.ValueEnum) {
             builder.append(node.value)
         }
