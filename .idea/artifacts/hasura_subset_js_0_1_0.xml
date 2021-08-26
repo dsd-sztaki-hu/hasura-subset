@@ -2,7 +2,7 @@
   <artifact type="jar" name="hasura-subset-js-0.1.0">
     <output-path>$PROJECT_DIR$/build/libs</output-path>
     <root id="archive" name="hasura-subset-js-0.1.0.jar">
-      <element id="module-output" name="hasura-subset.jsMain" />
+      <element id="module-output" name="hu.sztaki.dsd.hasura-subset.jsMain" />
     </root>
   </artifact>
 </component>

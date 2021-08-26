@@ -84,9 +84,19 @@ kotlin {
                     useChromeHeadless()
                     webpackConfig.cssSupport.enabled = true
                 }
+//                useMocha {
+//                    timeout = "10000"
+//                }
             }
         }
-        nodejs ()
+        // https://discuss.kotlinlang.org/t/configuring-timeouts-when-running-mocha-based-tests-in-mpp-or-js-projects/16567/2
+        nodejs {
+            testTask {
+                useMocha {
+                    timeout = "10000"
+                }
+            }
+        }
     }
 //    val hostOs = System.getProperty("os.name")
 //    val isMingwX64 = hostOs.startsWith("Windows")
