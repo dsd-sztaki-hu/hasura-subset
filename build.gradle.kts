@@ -34,7 +34,7 @@ val pomDeveloperId = "beepsoft"
 val pomDeveloperName = "Balazs E. Pataki"
 
 group = "hu.sztaki.dsd"
-version = "0.1.0"
+version = "0.2.0"
 
 plugins {
     kotlin("multiplatform") version "1.4.30"

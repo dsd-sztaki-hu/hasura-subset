@@ -12,8 +12,6 @@
       <entry name="!?*.clj" />
     </wildcardResourcePatterns>
     <bytecodeTargetLevel target="11">
-      <module name="hasura-subset.commonMain" target="1.8" />
-      <module name="hasura-subset.jvmMain" target="1.8" />
       <module name="hu.sztaki.dsd.hasura-subset.commonTest" target="1.8" />
       <module name="hu.sztaki.dsd.hasura-subset.jvmTest" target="1.8" />
     </bytecodeTargetLevel>
